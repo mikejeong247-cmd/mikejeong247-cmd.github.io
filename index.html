@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emoji Site</title>
+  <meta name="description" content="Emoji search and copy site">
+</head>
+<body>
+  <h1>🌍 Emoji Site</h1>
+  <p>이 페이지는 언어 파라미터로 다국어를 지원합니다.</p>
+
+  <script>
+  // 1. URL에서 lang 파라미터 읽기
+  const urlParams = new URLSearchParams(window.location.search);
+  const lang = urlParams.get("lang") || "en"; // 기본값 영어(en)
+
+  // 2. <html lang="xx"> 속성 바꾸기
+  document.documentElement.lang = lang;
+
+  // 3. 테스트용 표시
+  document.body.insertAdjacentHTML("beforeend", `<p>현재 언어: ${lang}</p>`);
+  </script>
+</body>
+</html>
