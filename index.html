@@ -101,12 +101,13 @@
       return row["Name"] || "";
     }
 
-    // 6) 모든 언어 열을 합쳐서 검색 대상 문자열 생성
+    // 6) 모든 언어 열 + 카테고리를 합쳐서 검색 대상 문자열 생성 (Q1 반영)
     function allNamesLower(row){
       const parts=[];
       for(const k in row){
         if(/^Name($|_)/i.test(k) && row[k]) parts.push(String(row[k]).toLowerCase());
       }
+      if(row.Category) parts.push(String(row.Category).toLowerCase()); // 카테고리 포함
       return parts.join(" | ");
     }
 
@@ -117,15 +118,29 @@
       setTimeout(()=>t.classList.remove("show"),1400);
     }
 
-    // 8) 렌더링
+    // 8) 렌더링 (Q2: 정렬 추가)
     function renderGrid(data){
       const q=document.getElementById("q").value.trim().toLowerCase();
-      const filtered=data.filter(r=>{
+      let filtered=data.filter(r=>{
         if(!q) return true;
         const curName=(getEmojiName(r)||"").toLowerCase();
         const allNames=allNamesLower(r);
         return curName.includes(q) || allNames.includes(q);
       });
+
+      // 현재 언어에서 매치된 항목을 우선 정렬
+      if(q){
+        filtered.sort((a,b)=>{
+          const aCur=(getEmojiName(a)||"").toLowerCase();
+          const bCur=(getEmojiName(b)||"").toLowerCase();
+          const aMatch=aCur.includes(q);
+          const bMatch=bCur.includes(q);
+          if(aMatch && !bMatch) return -1;
+          if(!aMatch && bMatch) return 1;
+          return 0;
+        });
+      }
+
       const html=filtered.map(r=>{
         const emoji=codeToEmoji(r.Code || r.code || r.CODE);
         const name=getEmojiName(r);
