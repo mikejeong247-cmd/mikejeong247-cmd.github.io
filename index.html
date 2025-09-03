@@ -9,24 +9,32 @@
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif;margin:16px}
     .wrap{max-width:1024px;margin:0 auto}
+
     .topbar{display:grid;grid-template-columns:1fr 220px;gap:12px;align-items:center}
     #q{position:sticky;top:0;z-index:10;background:#fff;width:100%;padding:12px;font-size:16px;border:1px solid #ddd;border-radius:10px}
     #cat{width:100%;padding:12px;font-size:14px;border:1px solid #ddd;border-radius:10px;background:#fff}
     .hint{color:#666;font-size:12px;margin-top:6px}
-    #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:16px}
-    .card{border:1px solid #eee;border-radius:12px;padding:12px;text-align:center;cursor:pointer;user-select:none;background:#fff}
-    .emoji{font-size:18px;line-height:1.2}
-    .name{font-size:12px;color:#666;margin-top:8px}
+
+    /* 🔧 목록/그리드 (간격 0) */
+    #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:0;margin-top:16px}
+    .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:0}
+
+    /* 🔧 카드(둥근 네모/배경/테두리/패딩 제거) */
+    .card{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:center;padding:0;margin:0;background:none;border:none;border-radius:0}
+
+    /* 🔧 이모지 크기 (원하면 숫자만 바꾸면 됨) */
+    .emoji{font-size:28px;line-height:1.0}
+
+    /* 이름 숨김 */
     .name{display:none}
+
     .toast{position:fixed;right:16px;bottom:16px;background:#222;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .2s}
     .toast.show{opacity:1}
     .err{background:#fff3f3;border:1px solid #ffcccc;color:#b30000;padding:10px;border-radius:10px;margin-top:12px;font-size:13px}
+
     /* 카테고리 섹션 */
     .section{margin-top:28px}
     .section h2{font-size:18px;margin:6px 0 10px 2px}
-    .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
-    .more{margin-top:10px}
-    .btn{display:inline-block;padding:8px 12px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer;font-size:13px}
   </style>
 </head>
 <body>
@@ -43,8 +51,8 @@
     <div class="hint">카드를 클릭하면 이모지가 복사됩니다.</div>
 
     <!-- 결과 영역 -->
-    <div id="grid"></div>            <!-- 검색 결과(평평한 목록) -->
-    <div id="sections"></div>        <!-- 카테고리 섹션(그룹형) -->
+    <div id="grid"></div>      <!-- 검색 결과: 평평 목록 -->
+    <div id="sections"></div>  <!-- 기본: 카테고리 그룹 -->
     <div id="error" class="err" style="display:none;"></div>
   </div>
 
@@ -120,7 +128,7 @@
       for(const k in row){
         if(/^Name($|_)/i.test(k) && row[k]) parts.push(String(row[k]).toLowerCase());
       }
-      if(row.Category) parts.push(String(row.Category).toLowerCase()); // 카테고리 포함
+      if(row.Category) parts.push(String(row.Category).toLowerCase());
       return parts.join(" | ");
     }
     function toast(msg="📋 복사되었습니다"){
@@ -133,62 +141,42 @@
       const name=getEmojiName(r);
       const copy=emoji.replace(/'/g,"\\'");
       return `
-        <div class="card" onclick="navigator.clipboard.writeText('${copy}').then(()=>toast('복사됨: ${copy}'))">
+        <div class="card" onclick="navigator.clipboard.writeText('${copy}').then(()=>toast('복사됨: ${copy}'))" title="${name}">
           <div class="emoji">${emoji}</div>
           <div class="name">${name}</div>
         </div>`;
     }
 
     /* ---------- 5) 렌더링 ---------- */
-    function renderFlat(data){ // 검색 모드: 평평한 목록
-      const html=data.map(cardHTML).join("");
-      document.getElementById("grid").innerHTML = html || `<div style="color:#666;">검색 결과가 없습니다.</div>`;
+    function renderFlat(data){ // 검색 모드
       document.getElementById("sections").innerHTML = "";
+      document.getElementById("grid").innerHTML = data.map(cardHTML).join("") || `<div style="color:#666;">검색 결과가 없습니다.</div>`;
     }
 
-    function renderGrouped(data, onlyCategory="__ALL__", perSection=24){ // 기본/카테고리 모드
+    // ✅ 더보기 없이 전부 표시 / 간격 0 / 카드 테두리 제거 반영
+    function renderGrouped(data, onlyCategory="__ALL__"){
       const byCat = {};
       data.forEach(r=>{
         const c = r.Category && r.Category.trim() ? r.Category.trim() : "(Uncategorized)";
         if(!byCat[c]) byCat[c]=[];
         byCat[c].push(r);
       });
-
-      // 카테고리 정렬(가나다/알파벳)
       const cats = Object.keys(byCat).sort((a,b)=>a.localeCompare(b));
 
       let html = "";
       cats.forEach(cat=>{
         if(onlyCategory!=="__ALL__" && cat!==onlyCategory) return;
         const rows = byCat[cat];
-        const shown = rows.slice(0, perSection);
-        const hidden = rows.slice(perSection);
         html += `
           <section class="section" data-cat="${cat}">
             <h2>${cat} <span style="color:#999;font-weight:400">(${rows.length})</span></h2>
-            <div class="cat-grid">${shown.map(cardHTML).join("")}</div>
-            ${hidden.length ? `<div class="more"><button class="btn" onclick="showMore('${encodeURIComponent(cat)}')">더 보기 (+${hidden.length})</button></div>` : ""}
+            <div class="cat-grid">${rows.map(cardHTML).join("")}</div>
           </section>
         `;
       });
 
       document.getElementById("sections").innerHTML = html || `<div style="color:#666;margin-top:12px;">표시할 카테고리가 없습니다.</div>`;
-      document.getElementById("grid").innerHTML = ""; // 평평 목록 비우기
-      window.__GROUP_DATA__ = byCat; // "더 보기"용
-      window.__PER_SECTION__ = perSection;
-    }
-
-    window.showMore = function(catEncoded){
-      const cat = decodeURIComponent(catEncoded);
-      const byCat = window.__GROUP_DATA__ || {};
-      const all = byCat[cat] || [];
-      const start = window.__PER_SECTION__ || 24;
-      const section = document.querySelector(`section[data-cat="${CSS.escape(cat)}"] .cat-grid`);
-      if(!section) return;
-      const rest = all.slice(start);
-      section.insertAdjacentHTML("beforeend", rest.map(cardHTML).join(""));
-      const moreBtn = document.querySelector(`section[data-cat="${CSS.escape(cat)}"] .more`);
-      if(moreBtn) moreBtn.remove();
+      document.getElementById("grid").innerHTML = "";
     }
 
     /* ---------- 6) 메인 로직 ---------- */
@@ -201,7 +189,7 @@
 
     function applyView(){
       const q = $q.value.trim().toLowerCase();
-      const catVal = $cat.value; // "__ALL__" or category name
+      const catVal = $cat.value;
 
       if(q){ // 검색 모드
         let filtered = ROWS.filter(r=>{
@@ -210,8 +198,6 @@
           const catOk = (catVal==="__ALL__") ? true : (String(r.Category||"").trim()===catVal);
           return catOk && (curName.includes(q) || allNames.includes(q));
         });
-
-        // 현재 언어 매치 우선 정렬
         filtered.sort((a,b)=>{
           const aCur=(getEmojiName(a)||"").toLowerCase();
           const bCur=(getEmojiName(b)||"").toLowerCase();
@@ -221,7 +207,6 @@
           if(!aMatch && bMatch) return 1;
           return 0;
         });
-
         renderFlat(filtered);
       } else { // 그룹 모드
         const data = (catVal==="__ALL__") ? ROWS : ROWS.filter(r => String(r.Category||"").trim()===catVal);
