@@ -9,32 +9,48 @@
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif;margin:16px}
     .wrap{max-width:1024px;margin:0 auto}
+    .topbar{display:grid;grid-template-columns:1fr 220px;gap:12px;align-items:center}
     #q{position:sticky;top:0;z-index:10;background:#fff;width:100%;padding:12px;font-size:16px;border:1px solid #ddd;border-radius:10px}
+    #cat{width:100%;padding:12px;font-size:14px;border:1px solid #ddd;border-radius:10px;background:#fff}
+    .hint{color:#666;font-size:12px;margin-top:6px}
     #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:16px}
-    .card{border:1px solid #eee;border-radius:12px;padding:12px;text-align:center;cursor:pointer;user-select:none}
+    .card{border:1px solid #eee;border-radius:12px;padding:12px;text-align:center;cursor:pointer;user-select:none;background:#fff}
     .emoji{font-size:38px;line-height:1.2}
     .name{font-size:12px;color:#666;margin-top:8px}
-    .hint{color:#666;font-size:12px;margin-top:6px}
     .toast{position:fixed;right:16px;bottom:16px;background:#222;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .2s}
     .toast.show{opacity:1}
     .err{background:#fff3f3;border:1px solid #ffcccc;color:#b30000;padding:10px;border-radius:10px;margin-top:12px;font-size:13px}
+    /* 카테고리 섹션 */
+    .section{margin-top:28px}
+    .section h2{font-size:18px;margin:6px 0 10px 2px}
+    .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+    .more{margin-top:10px}
+    .btn{display:inline-block;padding:8px 12px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer;font-size:13px}
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>🌍 Emoji Site</h1>
 
-    <!-- 검색창 & 그리드 -->
-    <input id="q" type="text" placeholder="검색 / Search" />
+    <!-- 검색 + 카테고리 필터 -->
+    <div class="topbar">
+      <input id="q" type="text" placeholder="검색 / Search (모든 언어 이름과 카테고리 검색)" />
+      <select id="cat">
+        <option value="__ALL__">전체 카테고리</option>
+      </select>
+    </div>
     <div class="hint">카드를 클릭하면 이모지가 복사됩니다.</div>
-    <div id="grid"></div>
+
+    <!-- 결과 영역 -->
+    <div id="grid"></div>            <!-- 검색 결과(평평한 목록) -->
+    <div id="sections"></div>        <!-- 카테고리 섹션(그룹형) -->
     <div id="error" class="err" style="display:none;"></div>
   </div>
 
   <div id="toast" class="toast">📋 복사되었습니다</div>
 
   <script>
-    // 1) 언어 자동 결정: URL ?lang=xx 우선, 없으면 브라우저 언어 사용
+    /* ---------- 1) 언어 자동 결정 ---------- */
     function normalizeLocale(l){
       l=(l||"").toLowerCase();
       if(l.startsWith("zh-cn")||l==="zh-hans") return "zh-CN";
@@ -58,10 +74,10 @@
     document.documentElement.lang=lang;
     window.__LANG__=lang;
 
-    // 2) 구글시트 CSV 주소 (두목님 제공 URL)
+    /* ---------- 2) 구글시트 CSV 주소 ---------- */
     const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1007324268&single=true&output=csv";
 
-    // 3) CSV 파서
+    /* ---------- 3) CSV 파서 ---------- */
     function parseCSV(text){
       const rows=[]; let cur=[],val="",inQ=false;
       for(let i=0;i<text.length;i++){
@@ -82,13 +98,11 @@
       });
     }
 
-    // 4) 코드 → 이모지
+    /* ---------- 4) 헬퍼들 ---------- */
     function codeToEmoji(code){
       const hex=(code||"").replace(/U\+/i,"").trim();
       return hex ? String.fromCodePoint(parseInt(hex,16)) : "";
     }
-
-    // 5) 현재 언어 이름 선택 + 중국어 변형/폴백 처리
     function getEmojiName(row){
       const lang=window.__LANG__;
       const prefs=[];
@@ -100,8 +114,6 @@
       for(const k of prefs){ if(k in row && row[k]) return row[k]; }
       return row["Name"] || "";
     }
-
-    // 6) 모든 언어 열 + 카테고리를 합쳐서 검색 대상 문자열 생성 (Q1 반영)
     function allNamesLower(row){
       const parts=[];
       for(const k in row){
@@ -110,26 +122,95 @@
       if(row.Category) parts.push(String(row.Category).toLowerCase()); // 카테고리 포함
       return parts.join(" | ");
     }
-
-    // 7) 토스트
     function toast(msg="📋 복사되었습니다"){
       const t=document.getElementById("toast");
       t.textContent=msg; t.classList.add("show");
       setTimeout(()=>t.classList.remove("show"),1400);
     }
+    function cardHTML(r){
+      const emoji=codeToEmoji(r.Code || r.code || r.CODE);
+      const name=getEmojiName(r);
+      const copy=emoji.replace(/'/g,"\\'");
+      return `
+        <div class="card" onclick="navigator.clipboard.writeText('${copy}').then(()=>toast('복사됨: ${copy}'))">
+          <div class="emoji">${emoji}</div>
+          <div class="name">${name}</div>
+        </div>`;
+    }
 
-    // 8) 렌더링 (Q2: 정렬 추가)
-    function renderGrid(data){
-      const q=document.getElementById("q").value.trim().toLowerCase();
-      let filtered=data.filter(r=>{
-        if(!q) return true;
-        const curName=(getEmojiName(r)||"").toLowerCase();
-        const allNames=allNamesLower(r);
-        return curName.includes(q) || allNames.includes(q);
+    /* ---------- 5) 렌더링 ---------- */
+    function renderFlat(data){ // 검색 모드: 평평한 목록
+      const html=data.map(cardHTML).join("");
+      document.getElementById("grid").innerHTML = html || `<div style="color:#666;">검색 결과가 없습니다.</div>`;
+      document.getElementById("sections").innerHTML = "";
+    }
+
+    function renderGrouped(data, onlyCategory="__ALL__", perSection=24){ // 기본/카테고리 모드
+      const byCat = {};
+      data.forEach(r=>{
+        const c = r.Category && r.Category.trim() ? r.Category.trim() : "(Uncategorized)";
+        if(!byCat[c]) byCat[c]=[];
+        byCat[c].push(r);
       });
 
-      // 현재 언어에서 매치된 항목을 우선 정렬
-      if(q){
+      // 카테고리 정렬(가나다/알파벳)
+      const cats = Object.keys(byCat).sort((a,b)=>a.localeCompare(b));
+
+      let html = "";
+      cats.forEach(cat=>{
+        if(onlyCategory!=="__ALL__" && cat!==onlyCategory) return;
+        const rows = byCat[cat];
+        const shown = rows.slice(0, perSection);
+        const hidden = rows.slice(perSection);
+        html += `
+          <section class="section" data-cat="${cat}">
+            <h2>${cat} <span style="color:#999;font-weight:400">(${rows.length})</span></h2>
+            <div class="cat-grid">${shown.map(cardHTML).join("")}</div>
+            ${hidden.length ? `<div class="more"><button class="btn" onclick="showMore('${encodeURIComponent(cat)}')">더 보기 (+${hidden.length})</button></div>` : ""}
+          </section>
+        `;
+      });
+
+      document.getElementById("sections").innerHTML = html || `<div style="color:#666;margin-top:12px;">표시할 카테고리가 없습니다.</div>`;
+      document.getElementById("grid").innerHTML = ""; // 평평 목록 비우기
+      window.__GROUP_DATA__ = byCat; // "더 보기"용
+      window.__PER_SECTION__ = perSection;
+    }
+
+    window.showMore = function(catEncoded){
+      const cat = decodeURIComponent(catEncoded);
+      const byCat = window.__GROUP_DATA__ || {};
+      const all = byCat[cat] || [];
+      const start = window.__PER_SECTION__ || 24;
+      const section = document.querySelector(`section[data-cat="${CSS.escape(cat)}"] .cat-grid`);
+      if(!section) return;
+      const rest = all.slice(start);
+      section.insertAdjacentHTML("beforeend", rest.map(cardHTML).join(""));
+      const moreBtn = document.querySelector(`section[data-cat="${CSS.escape(cat)}"] .more`);
+      if(moreBtn) moreBtn.remove();
+    }
+
+    /* ---------- 6) 메인 로직 ---------- */
+    let ROWS=[];
+    const $q = document.getElementById("q");
+    const $cat = document.getElementById("cat");
+
+    $q.addEventListener("input", applyView);
+    $cat.addEventListener("change", applyView);
+
+    function applyView(){
+      const q = $q.value.trim().toLowerCase();
+      const catVal = $cat.value; // "__ALL__" or category name
+
+      if(q){ // 검색 모드
+        let filtered = ROWS.filter(r=>{
+          const curName=(getEmojiName(r)||"").toLowerCase();
+          const allNames=allNamesLower(r);
+          const catOk = (catVal==="__ALL__") ? true : (String(r.Category||"").trim()===catVal);
+          return catOk && (curName.includes(q) || allNames.includes(q));
+        });
+
+        // 현재 언어 매치 우선 정렬
         filtered.sort((a,b)=>{
           const aCur=(getEmojiName(a)||"").toLowerCase();
           const bCur=(getEmojiName(b)||"").toLowerCase();
@@ -139,36 +220,32 @@
           if(!aMatch && bMatch) return 1;
           return 0;
         });
-      }
 
-      const html=filtered.map(r=>{
-        const emoji=codeToEmoji(r.Code || r.code || r.CODE);
-        const name=getEmojiName(r);
-        const copy=emoji.replace(/'/g,"\\'");
-        return `
-          <div class="card" onclick="navigator.clipboard.writeText('${copy}').then(()=>toast('복사됨: ${copy}'))">
-            <div class="emoji">${emoji}</div>
-            <div class="name">${name}</div>
-          </div>`;
-      }).join("");
-      document.getElementById("grid").innerHTML = html || `<div style="color:#666;">검색 결과가 없습니다.</div>`;
+        renderFlat(filtered);
+      } else { // 그룹 모드
+        const data = (catVal==="__ALL__") ? ROWS : ROWS.filter(r => String(r.Category||"").trim()===catVal);
+        renderGrouped(data, catVal);
+      }
     }
 
-    // 9) 로드 & 이벤트
-    let ROWS=[];
-    document.getElementById("q").addEventListener("input",()=>renderGrid(ROWS));
     async function load(){
       try{
         const res=await fetch(DATA_URL);
         if(!res.ok) throw new Error("CSV 불러오기 실패: "+res.status);
         const text=await res.text();
         ROWS=csvToObjects(text);
-        renderGrid(ROWS);
+
+        // 드롭다운 채우기
+        const cats = Array.from(new Set(ROWS.map(r => (r.Category||"").trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+        const opts = ['<option value="__ALL__">전체 카테고리</option>'].concat(cats.map(c=>`<option value="${c}">${c}</option>`));
+        document.getElementById("cat").innerHTML = opts.join("");
+
+        applyView(); // 첫 렌더
       }catch(e){
         console.error(e);
         const err=document.getElementById("error");
         err.style.display="block";
-        err.innerHTML="데이터를 불러오지 못했습니다. <br>1) 스프레드시트 ‘파일 → 웹에 게시(CSV)’인지 확인 <br>2) DATA_URL 주소 확인 <br>3) 첫 행 헤더가 Code, Name_en, Name_ko, ... 인지 확인";
+        err.innerHTML="데이터를 불러오지 못했습니다. <br>1) 스프레드시트 ‘파일 → 웹에 게시(CSV)’인지 확인 <br>2) DATA_URL 주소 확인 <br>3) 첫 행 헤더가 Code, Category, Name_en, Name_ko, ... 인지 확인";
       }
     }
     load();
