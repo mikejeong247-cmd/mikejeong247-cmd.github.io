@@ -34,37 +34,31 @@
   <div id="toast" class="toast">📋 복사되었습니다</div>
 
   <script>
-    // 1) URL에서 lang 읽기, 없으면 브라우저 언어 감지
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlLang = urlParams.get("lang");
-
-    function normalizeLocale(l) {
-      l = (l || "").toLowerCase();
-      if (l.startsWith("zh-cn") || l === "zh-hans") return "zh-CN";
-      if (l.startsWith("zh-tw") || l === "zh-hant") return "zh-TW";
-      if (l.startsWith("ko")) return "ko";
-      if (l.startsWith("en")) return "en";
-      if (l.startsWith("es")) return "es";
-      if (l.startsWith("zh")) return "zh";
-      if (l.startsWith("ja")) return "ja";
-      if (l.startsWith("fr")) return "fr";
-      if (l.startsWith("de")) return "de";
-      if (l.startsWith("pt")) return "pt";
-      if (l.startsWith("ru")) return "ru";
-      if (l.startsWith("ar")) return "ar";
+    // 1) 언어 자동 결정: URL ?lang=xx 우선, 없으면 브라우저 언어 사용
+    function normalizeLocale(l){
+      l=(l||"").toLowerCase();
+      if(l.startsWith("zh-cn")||l==="zh-hans") return "zh-CN";
+      if(l.startsWith("zh-tw")||l==="zh-hant") return "zh-TW";
+      if(l.startsWith("ko")) return "ko";
+      if(l.startsWith("en")) return "en";
+      if(l.startsWith("es")) return "es";
+      if(l.startsWith("zh")) return "zh";
+      if(l.startsWith("ja")) return "ja";
+      if(l.startsWith("fr")) return "fr";
+      if(l.startsWith("de")) return "de";
+      if(l.startsWith("pt")) return "pt";
+      if(l.startsWith("ru")) return "ru";
+      if(l.startsWith("ar")) return "ar";
       return "en";
     }
+    const urlParams=new URLSearchParams(window.location.search);
+    const urlLang=urlParams.get("lang");
+    const browserLangs=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||"en"];
+    const lang=urlLang?normalizeLocale(urlLang):normalizeLocale(browserLangs[0]);
+    document.documentElement.lang=lang;
+    window.__LANG__=lang;
 
-    const browserLangs = (navigator.languages && navigator.languages.length)
-      ? navigator.languages
-      : [navigator.language || "en"];
-
-    const autoLang = normalizeLocale(browserLangs[0]);
-    const lang = urlLang ? normalizeLocale(urlLang) : autoLang;
-    document.documentElement.lang = lang;
-    window.__LANG__ = lang;
-
-    // 2) 구글시트 CSV 주소 넣기
+    // 2) 구글시트 CSV 주소 (두목님 제공 URL)
     const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1007324268&single=true&output=csv";
 
     // 3) CSV 파서
@@ -88,41 +82,49 @@
       });
     }
 
-    // 4) 유니코드 포인트 → 이모지
+    // 4) 코드 → 이모지
     function codeToEmoji(code){
       const hex=(code||"").replace(/U\+/i,"").trim();
       return hex ? String.fromCodePoint(parseInt(hex,16)) : "";
     }
 
-    // 5) 이름 고르는 함수 (수정된 버전)
+    // 5) 현재 언어 이름 선택 + 중국어 변형/폴백 처리
     function getEmojiName(row){
-      const lang = window.__LANG__;
-      const prefs = [];
+      const lang=window.__LANG__;
+      const prefs=[];
       prefs.push(`Name_${lang}`);
-      if(lang === "zh") prefs.push("Name_zh","Name_zh-CN","Name_zh-TW","Name_zh_Hans","Name_zh_Hant");
-      if(lang === "zh-CN") prefs.push("Name_zh-CN","Name_zh");
-      if(lang === "zh-TW") prefs.push("Name_zh-TW","Name_zh");
-      prefs.push("Name_ko","Name_en"); // 폴백 순서
-
-      for(const k of prefs){
-        if(k in row && row[k]) return row[k];
-      }
+      if(lang==="zh") prefs.push("Name_zh","Name_zh-CN","Name_zh-TW","Name_zh_Hans","Name_zh_Hant");
+      if(lang==="zh-CN") prefs.push("Name_zh-CN","Name_zh");
+      if(lang==="zh-TW") prefs.push("Name_zh-TW","Name_zh");
+      prefs.push("Name_ko","Name_en");
+      for(const k of prefs){ if(k in row && row[k]) return row[k]; }
       return row["Name"] || "";
     }
 
-    // 6) 토스트
+    // 6) 모든 언어 열을 합쳐서 검색 대상 문자열 생성
+    function allNamesLower(row){
+      const parts=[];
+      for(const k in row){
+        if(/^Name($|_)/i.test(k) && row[k]) parts.push(String(row[k]).toLowerCase());
+      }
+      return parts.join(" | ");
+    }
+
+    // 7) 토스트
     function toast(msg="📋 복사되었습니다"){
       const t=document.getElementById("toast");
       t.textContent=msg; t.classList.add("show");
       setTimeout(()=>t.classList.remove("show"),1400);
     }
 
-    // 7) 렌더링
+    // 8) 렌더링
     function renderGrid(data){
       const q=document.getElementById("q").value.trim().toLowerCase();
       const filtered=data.filter(r=>{
-        const name=(getEmojiName(r)||"").toLowerCase();
-        return !q || name.includes(q);
+        if(!q) return true;
+        const curName=(getEmojiName(r)||"").toLowerCase();
+        const allNames=allNamesLower(r);
+        return curName.includes(q) || allNames.includes(q);
       });
       const html=filtered.map(r=>{
         const emoji=codeToEmoji(r.Code || r.code || r.CODE);
@@ -137,7 +139,7 @@
       document.getElementById("grid").innerHTML = html || `<div style="color:#666;">검색 결과가 없습니다.</div>`;
     }
 
-    // 8) 로드 & 이벤트
+    // 9) 로드 & 이벤트
     let ROWS=[];
     document.getElementById("q").addEventListener("input",()=>renderGrid(ROWS));
     async function load(){
@@ -151,7 +153,7 @@
         console.error(e);
         const err=document.getElementById("error");
         err.style.display="block";
-        err.innerHTML="데이터를 불러오지 못했습니다. <br>1) 스프레드시트 ‘파일 → 웹에 게시’(CSV)인지 확인 <br>2) DATA_URL 주소가 맞는지 확인 <br>3) 첫 행 헤더가 Code, Name_en, Name_ko 등인지 확인";
+        err.innerHTML="데이터를 불러오지 못했습니다. <br>1) 스프레드시트 ‘파일 → 웹에 게시(CSV)’인지 확인 <br>2) DATA_URL 주소 확인 <br>3) 첫 행 헤더가 Code, Name_en, Name_ko, ... 인지 확인";
       }
     }
     load();
