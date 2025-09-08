@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://mikejeong247-cmd.github.io/</loc></url>
+  <url><loc>https://mikejeong247-cmd.github.io/?lang=en</loc></url>
+  <url><loc>https://mikejeong247-cmd.github.io/?lang=ko</loc></url>
+  <url><loc>https://mikejeong247-cmd.github.io/?lang=zh-CN</loc></url>
+  <!-- 필요 시 더 추가
+  <url><loc>https://mikejeong247-cmd.github.io/?lang=es</loc></url>
+  <url><loc>https://mikejeong247-cmd.github.io/?lang=ja</loc></url>
+  <url><loc>https://mikejeong247-cmd.github.io/?lang=fr</loc></url>
+  <url><loc>https://mikejeong247-cmd.github.io/?lang=de</loc></url>
+  -->
+</urlset>
