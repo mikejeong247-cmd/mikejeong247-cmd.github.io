@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://mikejeong247-cmd.github.io/sitemap.xml
