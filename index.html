@@ -6,8 +6,12 @@
   <title>Emoji Search — Pro (FAST, SAFE-only, i18n + Copybar)</title>
   <style>
     :root{
-      --gap:0;
-      --search-h:44px; /* 검색창 높이 (복사창은 이의 2배) */
+      --search-h:44px;       /* 검색창 높이(복사창은 2배) */
+      --emoji-size:40px;     /* 이모지 크기 */
+      --grid-gap:10px;       /* 가로/세로 간격 */
+      --grid-width:600px;    /* 한 줄 총 가용 폭 */
+      --cat-gap-between:100px; /* 대카테고리 사이(섹션) 간격 */
+      --cat-to-grid-gap:20px;  /* 대카테고리와 이모지 그리드 간격 */
     }
     body{
       font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;
@@ -39,43 +43,55 @@
 
     /* 카테고리 섹션 */
     #list{display:block}
-    .sec{margin:0 0 100px} /* 대카테고리 사이 간격 100px */
+    .sec{margin:0 0 var(--cat-gap-between)} /* 대카테고리 사이 간격 100px */
     .cat{
-      font-weight:700;font-size:13px;margin:6px 0 10px;
+      font-weight:700;font-size:20px;      /* 대카테고리 글자 20px */
+      margin:6px 0 var(--cat-to-grid-gap); /* 카테고리↔이모지 간격 20px */
       display:flex;align-items:center;gap:6px;justify-content:center;
     }
     .cnt{color:#999;font-weight:400;font-size:12px}
 
-    /* 이모지 그리드: 40px, 가로/세로 10px, 600px 박스 */
+    /* 이모지 그리드
+       - 600px 고정 폭
+       - 12칸(Grid)로 나눠서 '양끝 정렬된' 느낌을 안정적으로 확보
+       - 각 칸 너비 = 600/12 = 50px, 이 안에서 이모지(40px)가 가운데 배치됨
+       - 12개 꽉 차면 양끝이 맞고, 부족한 마지막 줄은 좌측 정렬 대신 칸 기준으로 유지
+    */
     .emojis{
-      display:flex;flex-wrap:wrap;
-      column-gap:10px;row-gap:10px;  /* 가로 10px / 세로 10px */
-      width:600px;margin:0 auto;      /* 고정 600px 박스, 가운데 정렬 */
+      width:var(--grid-width);
+      margin:0 auto; /* 가운데 */
+      display:grid;
+      grid-template-columns:repeat(12, 1fr); /* 12칸 고정 */
+      justify-items:center;                   /* 각 칸 가운데 배치 */
+      align-items:center;
+      gap:var(--grid-gap);                    /* 가로/세로 10px */
     }
+
+    /* 이모지 타일: 고정 크기 + 가운데 정렬 */
     .e{
-      width:40px;height:40px;
-      display:inline-flex;align-items:center;justify-content:center;
-      cursor:pointer;user-select:none;
+      width:var(--emoji-size); height:var(--emoji-size);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; user-select:none;
     }
-    .glyph{font-size:40px;line-height:1}
+    .glyph{
+      display:block;
+      width:var(--emoji-size); height:var(--emoji-size);
+      line-height:var(--emoji-size);
+      font-size:var(--emoji-size);
+      text-align:center;
+    }
 
     /* name/keywords: 검색 때만 보임 */
     .d{display:none}
-    body.searching .emojis{display:block}
-    body.searching .e{
-      width:auto;height:auto;display:flex;align-items:flex-start;gap:8px;margin:4px 0
-    }
-    body.searching .glyph{font-size:40px;line-height:1;margin-top:2px}
+    body.searching .emojis{display:grid}
+    body.searching .e{width:auto;height:auto;display:flex;align-items:flex-start;gap:8px;margin:4px 0}
+    body.searching .glyph{font-size:var(--emoji-size);line-height:1;margin-top:2px;width:auto;height:auto}
     body.searching .d{display:block}
     .nm{font-weight:700;font-size:12px;margin-bottom:2px}
     .kw{color:#666;font-size:11px}
     mark{background:#fff2a8;padding:0 .5px;border-radius:2px}
 
     .zero{margin-top:12px;color:#666;text-align:center}
-
-    /* (선택) 광고 슬롯 기본 스타일 - 필요 시 활성화
-    .ad-slot{width:600px;height:280px;margin:20px auto;border:1px solid #eee;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999;font-size:12px}
-    */
   </style>
 </head>
 <body>
@@ -230,40 +246,32 @@
   let ready = false;
 
   // 인버티드 인덱스(웹워커에서 생성)
-  let charIndex = {};   // { char: [rowIdx, ...] }  (비라틴 문자)
-  let tokenIndex = {};  // { token: [rowIdx, ...] } (라틴 토큰)
+  let charIndex = {};   // { char: [rowIdx, ...] }  (비라틴)
+  let tokenIndex = {};  // { token: [rowIdx, ...] } (라틴)
 
-  // 워커 생성(인라인 소스 → Blob → Worker)
   const workerSrc = `
     self.onmessage = (e)=>{
       const {type, data} = e.data||{};
       if(type!=="build") return;
       const charIndex = Object.create(null);
       const tokenIndex = Object.create(null);
-
       const isLatinChar = (c)=> /[a-z0-9]/i.test(c);
-      for(const item of data){ // item: {i, idxChars, idxLatinTokens}
+      for(const item of data){
         const i = item.i|0;
-
-        // 비라틴 문자 인덱스(문자 1글자 OR 매칭)
         const set = new Set(item.idxChars.split(""));
         for(const ch of set){
           if(!ch || isLatinChar(ch) || ch===" " || ch==="," || ch==="." || ch==="_" || ch==="-" ) continue;
           if(!charIndex[ch]) charIndex[ch] = [];
           charIndex[ch].push(i);
         }
-
-        // 라틴 토큰 인덱스(단어 OR 매칭)
         for(const t of item.idxLatinTokens||[]){
           if(!t) continue;
           if(!tokenIndex[t]) tokenIndex[t] = [];
           tokenIndex[t].push(i);
         }
       }
-      // 정렬(작은 배열이 교집합/합집합에 유리)
       for(const k in charIndex){ charIndex[k].sort((a,b)=>a-b); }
       for(const k in tokenIndex){ tokenIndex[k].sort((a,b)=>a-b); }
-
       self.postMessage({type:"built", charIndex, tokenIndex});
     };
   `;
@@ -273,7 +281,6 @@
     if(e.data && e.data.type==="built"){
       charIndex = e.data.charIndex||{};
       tokenIndex = e.data.tokenIndex||{};
-      // 첫 화면 렌더(카테고리 청크 렌더)
       ready = true;
       renderChunkedByCategory(rows);
     }
@@ -319,7 +326,6 @@
       };
     });
 
-    // 워커로 인덱스 빌드 요청(메인 스레드 가벼움)
     worker.postMessage({
       type:"build",
       data: rows.map((r, i)=>({ i, idxChars: r.idxChars, idxLatinTokens: r.idxLatinTokens }))
@@ -334,7 +340,7 @@
 
   $q.addEventListener("input", () => {
     clearTimeout(t);
-    t = setTimeout(runSearch, 150); // 디바운스 약간 늘려 부드럽게
+    t = setTimeout(runSearch, 150);
   });
 
   function unionArrays(arrays){
@@ -346,6 +352,7 @@
   function runSearch(){
     if(!ready){ return; }
     const qRaw = $q.value || "";
+    a:
     const q = toLower(qRaw.trim());
 
     if(!q){
@@ -359,7 +366,6 @@
     const chars  = latin ? [] : uniq(q.split("").filter(Boolean));
     const tokens = latin ? uniq(q.split(/[\s,]+/).map(toLower).filter(Boolean)) : [];
 
-    // 인버티드 인덱스 기반 후보 수집(전수 스캔 제거)
     let candidateIdxs;
     if(!latin){
       const lists = chars.map(ch => charIndex[ch]);
@@ -443,7 +449,6 @@
     return m;
   }
 
-  // 카테고리/이모지 청크 렌더(스크롤 버벅임 방지)
   function renderChunkedByCategory(items, query=""){
     $list.innerHTML = "";
     $zero.style.display = "none";
@@ -459,11 +464,11 @@
         const [cat, arr] = groups[catIdx];
         const sec = document.createElement("section");
         sec.className = "sec";
-        sec.innerHTML = `<div class="cat">${esc(tCat(cat))} <span class="cnt">${arr.length}</span></div>
-                         <div class="emojis"></div>`;
+        sec.innerHTML = `
+          <div class="cat">${esc(tCat(cat))} <span class="cnt">${arr.length}</span></div>
+          <div class="emojis"></div>`;
         const grid = sec.querySelector(".emojis");
 
-        // 이모지도 청크로 붙이기
         let start = 0;
         function renderEmojiChunk(){
           const end = Math.min(start + EMOJI_CHUNK, arr.length);
@@ -488,14 +493,6 @@
         }
         renderEmojiChunk();
         frag.appendChild(sec);
-
-        // (선택) 광고 슬롯을 넣고 싶다면 여기에서 주기적으로 삽입하세요.
-        // if((catIdx % 2) === 0){ 
-        //   const ad = document.createElement("div");
-        //   ad.className = "ad-slot";
-        //   ad.textContent = "Ad slot (600x280 reserved)";
-        //   frag.appendChild(ad);
-        // }
       }
       $list.appendChild(frag);
       if(catIdx < groups.length){
@@ -512,14 +509,14 @@
     if(!tile) return;
     const emoji = tile.getAttribute("data-emoji") || tile.querySelector(".glyph")?.textContent || "";
     if(!emoji) return;
-    try{ await navigator.clipboard.writeText(emoji); }catch(e){ /* 일부 환경 제한 무시 */ }
+    try{ await navigator.clipboard.writeText(emoji); }catch(e){ /* 환경에 따라 실패 가능, UI만 유지 */ }
     const span = document.createElement("span");
     span.className = "copyglyph";
     span.textContent = emoji;
     copybar.appendChild(span);
   });
 
-  // 마지막: placeholder/복사 안내 현지화 텍스트 설정
+  // placeholder/복사 안내 현지화 텍스트 적용
   (function applyI18N(){
     const q = document.getElementById("q");
     q.placeholder = (I18N_TEXT.placeholder[LC] || I18N_TEXT.placeholder.en) + "…";
