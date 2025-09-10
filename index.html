@@ -7,7 +7,7 @@
   <style>
     :root{
       --gap:0;
-      --search-h:44px; /* 검색창 높이 (복사창은 이의 2배) */
+      --search-h:44px; /* 검색창 높이(복사창은 이의 2배) */
     }
     body{
       font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;
@@ -26,7 +26,7 @@
       border:1px solid #ddd;border-radius:12px;outline:none
     }
 
-    /* 복사창: 검색창과 같은 폭, 세로는 2배, 내용 래핑 + 스크롤 */
+    /* 복사창: 검색창과 동일 폭, 높이는 2배 */
     .copywrap{width:100%;max-width:680px;min-width:260px;margin:6px auto 14px}
     .copybar{
       height:calc(var(--search-h) * 2);
@@ -39,31 +39,33 @@
 
     /* 카테고리 섹션 */
     #list{display:block}
-    .sec{margin:10px 0 14px}
+    .sec{margin:0 0 100px} /* 대카테고리 사이 간격 100px */
     .cat{
-      font-weight:700;font-size:13px;margin:6px 0 4px;
+      font-weight:700;font-size:13px;margin:6px 0 10px;
       display:flex;align-items:center;gap:6px;justify-content:center;
     }
     .cnt{color:#999;font-weight:400;font-size:12px}
 
-    /* 이모지 타일: 30px, 가로/세로 5px, 600px 박스 내 배치 */
+    /* 이모지 그리드: 40px, 가로/세로 10px, 600px 박스 */
     .emojis{
       display:flex;flex-wrap:wrap;
-      column-gap:5px;row-gap:5px;
-      width:600px;margin:0 auto;  /* ← 고정 600px 박스, 가운데 정렬 */
+      column-gap:10px;row-gap:10px;  /* ← 가로 10px / 세로 10px */
+      width:600px;margin:0 auto;      /* ← 고정 600px 박스, 가운데 정렬 */
     }
     .e{
-      width:30px;height:30px;
+      width:40px;height:40px;
       display:inline-flex;align-items:center;justify-content:center;
       cursor:pointer;user-select:none;
     }
-    .glyph{font-size:30px;line-height:1}
+    .glyph{font-size:40px;line-height:1}
 
-    /* name/keywords: 검색할 때만 노출 */
+    /* name/keywords: 검색 때만 보임 */
     .d{display:none}
     body.searching .emojis{display:block}
-    body.searching .e{width:auto;height:auto;display:flex;align-items:flex-start;gap:8px;margin:4px 0}
-    body.searching .glyph{font-size:30px;line-height:1;margin-top:2px}
+    body.searching .e{
+      width:auto;height:auto;display:flex;align-items:flex-start;gap:8px;margin:4px 0
+    }
+    body.searching .glyph{font-size:40px;line-height:1;margin-top:2px}
     body.searching .d{display:block}
     .nm{font-weight:700;font-size:12px;margin-bottom:2px}
     .kw{color:#666;font-size:11px}
@@ -79,7 +81,7 @@
     </div>
   </div>
 
-  <!-- 복사창(검색창 아래, 동일 폭 / 높이 2배) -->
+  <!-- 복사창(검색창 아래, 같은 폭 / 2배 높이) -->
   <div class="copywrap">
     <div id="copybar" class="copybar">
       <span id="copyhint" class="copyhint"></span>
@@ -96,7 +98,7 @@
   // 1) BUILD 시트를 CSV로 공개한 최종 주소로 교체하세요.
   const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=813614977&single=true&output=csv";
 
-  // 2) 이름 우선순위(표시용) — manual_alt > alt > manual > base 순 자동 보강
+  // 2) 표시 이름 우선순위 — manual_alt > alt > manual > base 순 자동 보강
   const NAME_FIELDS_BASE = [
     "name_ko","name_ja","name_zh-cn","name_en",
     "name_es","name_ar","name_pt","name_ru","name_fr","name_tr",
@@ -115,7 +117,7 @@
   const MAX_RESULTS = Infinity;
   const SCORE = { nameHit: 3, tokenHit: 1, categoryHit: 0.5 };
 
-  /** ====== i18n (언어 감지 + 문자열/카테고리 번역) ====== */
+  /** ====== i18n: 접속 언어 감지 + 문자열/카테고리 현지화 ====== */
   const rawLang = (navigator.language || "en").toLowerCase();
   const LC = rawLang.startsWith("zh")
     ? (rawLang.includes("tw") || rawLang.includes("hk") ? "zh-tw" : "zh-cn")
@@ -145,7 +147,7 @@
     }
   };
 
-  // 표준 이모지 대카테고리 번역(필요시 확장 가능)
+  // 대표 카테고리 번역(필요시 확장 가능)
   const CAT_I18N = {
     "Smileys & Emotion": {
       "ko":"스마일 & 감정","ja":"スマイル・感情","zh-cn":"表情与情感","zh-tw":"表情與情感","en":"Smileys & Emotion",
@@ -208,7 +210,7 @@
   const isLatin = s => /^[a-z0-9\s,._-]+$/i.test(rmDiacritics(s||""));
   const esc = s => (s||"").replace(/[&<>"]/g, m=>({ "&":"&amp;","<":"&lt;","&gt;":"&gt;",'"':"&quot;"}[m]));
 
-  // 검색창 placeholder/복사 힌트 i18n 적용
+  // 검색창 placeholder/복사 힌트 현지화
   (function initI18N(){
     const ph = (I18N_TEXT.placeholder[LC] || I18N_TEXT.placeholder.en) + "…";
     document.getElementById("q").placeholder = ph;
@@ -237,12 +239,9 @@
     };
 
     const EXPANDED_SAFE_FIELDS = expandVariants(SAFE_FIELDS_BASE);
-
     const nameCandidatesFor = (base) => ([`${base}_manual_alt`, `${base}_alt`, `${base}_manual`, base]);
     const NAME_FIELDS_ALL = NAME_FIELDS_BASE.flatMap(nameCandidatesFor);
-
-    const TOKEN_AUX_FIELDS = ["name_en","name_en_alt","name_en_manual","name_en_manual_alt"]
-      .filter(f => headers.includes(f));
+    const TOKEN_AUX_FIELDS = ["name_en","name_en_alt","name_en_manual","name_en_manual_alt"].filter(f => headers.includes(f));
 
     rows = data.map(r => {
       const name = (NAME_FIELDS_ALL.find(f => r[f]) && NAME_FIELDS_ALL.map(f=>r[f]).find(Boolean)) || r["name_en"] || "";
@@ -254,7 +253,6 @@
       const idxStr = toLower(safeStrings);
       const idxChars = idxStr;                          // 비라틴: 문자 포함 검사
       const idxLatinTokens = uniq(splitLatin(idxStr));  // 라틴: 토큰 배열
-
       const safeKo = r["keywords_ko_safe"] || r["keywords_ko_safe_alt"] || "";
 
       return {
@@ -266,7 +264,7 @@
     });
 
     ready = true;
-    render(rows); // 첫 화면: 카테고리별 600px 박스 내 30px 이모지
+    render(rows); // 첫 화면: 카테고리별 600px 박스 내 40px 이모지
   })();
 
   /** ====== 검색 ====== */
@@ -403,7 +401,7 @@
     if(!tile) return;
     const emoji = tile.getAttribute("data-emoji") || tile.querySelector(".glyph")?.textContent || "";
     if(!emoji) return;
-    try{ await navigator.clipboard.writeText(emoji); }catch(e){ /* 일부 브라우저 제한 무시 */ }
+    try{ await navigator.clipboard.writeText(emoji); }catch(e){ /* 일부 환경 제한 무시 */ }
     const span = document.createElement("span");
     span.className = "copyglyph";
     span.textContent = emoji;
