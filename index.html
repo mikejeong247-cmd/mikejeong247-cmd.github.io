@@ -3,15 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Emoji Search — Pro (FAST, SAFE-only, i18n + Copybar)</title>
+  <title>Emoji Search — Pro (FAST Compact)</title>
+
+  <!-- 네트워크 핸드셰이크 단축 -->
+  <link rel="dns-prefetch" href="https://docs.google.com">
+  <link rel="preconnect" href="https://docs.google.com" crossorigin>
+
   <style>
     :root{
-      --search-h:44px;       /* 검색창 높이(복사창은 2배) */
-      --emoji-size:40px;     /* 이모지 크기 */
-      --grid-gap:10px;       /* 가로/세로 간격 */
-      --grid-width:600px;    /* 한 줄 총 가용 폭 */
-      --cat-gap-between:100px; /* 대카테고리 사이(섹션) 간격 */
-      --cat-to-grid-gap:20px;  /* 대카테고리와 이모지 그리드 간격 */
+      --search-h:44px;         /* 검색창 높이(복사창은 2배) */
+      --grid-width:600px;      /* 한 줄 총 가용 폭 */
+      --cols:27;               /* 27열 고정 */
+      --emoji-size:15px;       /* 이모지 크기 15px */
+      --grid-gap:2px;          /* 가로/세로 간격(작게) */
+      --cat-gap-between:100px; /* 섹션 간격 */
+      --cat-to-grid-gap:20px;  /* 카테고리↔그리드 간격 */
     }
     body{
       font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;
@@ -39,35 +45,34 @@
       display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px
     }
     .copyhint{width:100%;color:#666;font-size:12px}
-    .copyglyph{font-size:25px;line-height:1} /* 복사창 이모지 25px */
+    .copyglyph{font-size:25px;line-height:1}
 
-    /* 카테고리 섹션 */
+    /* 카테고리 섹션: 오프스크린 렌더 스킵 */
     #list{display:block}
-    .sec{margin:0 0 var(--cat-gap-between)} /* 대카테고리 사이 간격 100px */
+    .sec{
+      margin:0 0 var(--cat-gap-between);
+      content-visibility:auto;                 /* 뷰포트 밖 렌더 생략 */
+      contain-intrinsic-size: 1200px;          /* 대충의 예상 높이(LS 예방) */
+    }
     .cat{
-      font-weight:700;font-size:20px;      /* 대카테고리 글자 20px */
-      margin:6px 0 var(--cat-to-grid-gap); /* 카테고리↔이모지 간격 20px */
+      font-weight:700;font-size:20px;
+      margin:6px 0 var(--cat-to-grid-gap);
       display:flex;align-items:center;gap:6px;justify-content:center;
     }
     .cnt{color:#999;font-weight:400;font-size:12px}
 
-    /* 이모지 그리드
-       - 600px 고정 폭
-       - 12칸(Grid)로 나눠서 '양끝 정렬된' 느낌을 안정적으로 확보
-       - 각 칸 너비 = 600/12 = 50px, 이 안에서 이모지(40px)가 가운데 배치됨
-       - 12개 꽉 차면 양끝이 맞고, 부족한 마지막 줄은 좌측 정렬 대신 칸 기준으로 유지
-    */
+    /* 600px · 27칸 그리드 — 좌측 정렬 */
     .emojis{
       width:var(--grid-width);
-      margin:0 auto; /* 가운데 */
+      margin:0 auto;
       display:grid;
-      grid-template-columns:repeat(12, 1fr); /* 12칸 고정 */
-      justify-items:center;                   /* 각 칸 가운데 배치 */
+      grid-template-columns:repeat(var(--cols), 1fr);
+      justify-items:start;                     /* 칸 안에서 좌정렬 */
       align-items:center;
-      gap:var(--grid-gap);                    /* 가로/세로 10px */
+      gap:var(--grid-gap);                     /* 가로/세로 2px */
     }
 
-    /* 이모지 타일: 고정 크기 + 가운데 정렬 */
+    /* 이모지 타일 */
     .e{
       width:var(--emoji-size); height:var(--emoji-size);
       display:flex; align-items:center; justify-content:center;
@@ -81,10 +86,10 @@
       text-align:center;
     }
 
-    /* name/keywords: 검색 때만 보임 */
+    /* name/keywords: 검색 때만 보임 (Compact에선 기본 감춤) */
     .d{display:none}
     body.searching .emojis{display:grid}
-    body.searching .e{width:auto;height:auto;display:flex;align-items:flex-start;gap:8px;margin:4px 0}
+    body.searching .e{width:auto;height:auto;display:flex;align-items:flex-start;gap:6px;margin:2px 0}
     body.searching .glyph{font-size:var(--emoji-size);line-height:1;margin-top:2px;width:auto;height:auto}
     body.searching .d{display:block}
     .nm{font-weight:700;font-size:12px;margin-bottom:2px}
@@ -137,9 +142,9 @@
   const MAX_RESULTS = Infinity;
   const SCORE = { nameHit: 3, tokenHit: 1, categoryHit: 0.5 };
 
-  // 5) 렌더링 최적화 파라미터
-  const CATEGORY_CHUNK = 2;   // 한 번에 붙일 카테고리 섹션 수
-  const EMOJI_CHUNK    = 200; // 한 섹션 안에서 한 번에 붙일 이모지 수
+  // 5) 렌더링 최적화 파라미터(느긋하게 뿌리기)
+  const CATEGORY_CHUNK = 1;   // 카테고리 섹션 1개씩
+  const EMOJI_CHUNK    = 120; // 이모지 120개씩
 
   /** ====== i18n: 접속 언어 감지 + 문자열/카테고리 현지화 ====== */
   const rawLang = (navigator.language || "en").toLowerCase();
@@ -171,58 +176,17 @@
     }
   };
 
-  // 대표 카테고리 번역(필요시 확장 가능)
   const CAT_I18N = {
-    "Smileys & Emotion": {
-      "ko":"스마일 & 감정","ja":"スマイル・感情","zh-cn":"表情与情感","zh-tw":"表情與情感","en":"Smileys & Emotion",
-      "es":"Caritas y emociones","ar":"الابتسامات والمشاعر","pt":"Carinhas e emoção","ru":"Смайлы и эмоции",
-      "fr":"Sourires et émotions","tr":"Yüz ifadeleri ve duygular","id":"Senyum & emosi","hi":"मुस्कान व भावनाएँ","de":"Smileys & Emotionen"
-    },
-    "People & Body": {
-      "ko":"사람 & 몸","ja":"人・体","zh-cn":"人物与身体","zh-tw":"人物與身體","en":"People & Body",
-      "es":"Personas y cuerpo","ar":"الأشخاص والجسم","pt":"Pessoas e corpo","ru":"Люди и тело",
-      "fr":"Personnes et corps","tr":"İnsanlar ve vücut","id":"Orang & tubuh","hi":"लोग व शरीर","de":"Personen & Körper"
-    },
-    "Animals & Nature": {
-      "ko":"동물 & 자연","ja":"動物・自然","zh-cn":"动物与自然","zh-tw":"動物與自然","en":"Animals & Nature",
-      "es":"Animales y naturaleza","ar":"الحيوانات والطبيعة","pt":"Animais e natureza","ru":"Животные и природа",
-      "fr":"Animaux et nature","tr":"Hayvanlar ve doğa","id":"Hewan & alam","hi":"जानवर व प्रकृति","de":"Tiere & Natur"
-    },
-    "Food & Drink": {
-      "ko":"음식 & 음료","ja":"食べ物・飲み物","zh-cn":"食物与饮品","zh-tw":"食物與飲品","en":"Food & Drink",
-      "es":"Comida y bebida","ar":"الطعام والشراب","pt":"Comida e bebida","ru":"Еда и напитки",
-      "fr":"Nourriture & boissons","tr":"Yiyecek & içecek","id":"Makanan & minuman","hi":"भोजन व पेय","de":"Essen & Trinken"
-    },
-    "Travel & Places": {
-      "ko":"여행 & 장소","ja":"旅行・場所","zh-cn":"旅行与地点","zh-tw":"旅行與地點","en":"Travel & Places",
-      "es":"Viajes y lugares","ar":"السفر والأماكن","pt":"Viagens e lugares","ru":"Путешествия и места",
-      "fr":"Voyages & lieux","tr":"Seyahat & yerler","id":"Perjalanan & tempat","hi":"यात्रा व स्थान","de":"Reisen & Orte"
-    },
-    "Activities": {
-      "ko":"활동","ja":"アクティビティ","zh-cn":"活动","zh-tw":"活動","en":"Activities",
-      "es":"Actividades","ar":"أنشطة","pt":"Atividades","ru":"Активности",
-      "fr":"Activités","tr":"Aktiviteler","id":"Aktivitas","hi":"गतिविधियाँ","de":"Aktivitäten"
-    },
-    "Objects": {
-      "ko":"사물","ja":"物・道具","zh-cn":"物品","zh-tw":"物品","en":"Objects",
-      "es":"Objetos","ar":"أشياء","pt":"Objetos","ru":"Предметы",
-      "fr":"Objets","tr":"Nesneler","id":"Objek","hi":"वस्तुएँ","de":"Objekte"
-    },
-    "Symbols": {
-      "ko":"기호","ja":"記号","zh-cn":"符号","zh-tw":"符號","en":"Symbols",
-      "es":"Símbolos","ar":"رموز","pt":"Símbolos","ru":"Символы",
-      "fr":"Symboles","tr":"Semboller","id":"Simbol","hi":"प्रतीक","de":"Symbole"
-    },
-    "Flags": {
-      "ko":"깃발","ja":"旗","zh-cn":"旗帜","zh-tw":"旗幟","en":"Flags",
-      "es":"Banderas","ar":"أعلام","pt":"Bandeiras","ru":"Флаги",
-      "fr":"Drapeaux","tr":"Bayraklar","id":"Bendera","hi":"झंडे","de":"Flaggen"
-    },
-    "Component": {
-      "ko":"구성요소","ja":"コンポーネント","zh-cn":"组件","zh-tw":"元件","en":"Component",
-      "es":"Componente","ar":"مكوّن","pt":"Componente","ru":"Компонент",
-      "fr":"Composant","tr":"Bileşen","id":"Komponen","hi":"घटक","de":"Komponente"
-    }
+    "Smileys & Emotion": {"ko":"스마일 & 감정","ja":"スマイル・感情","zh-cn":"表情与情感","zh-tw":"表情與情感","en":"Smileys & Emotion","es":"Caritas y emociones","ar":"الابتسامات والمشاعر","pt":"Carinhas e emoção","ru":"Смайлы и эмоции","fr":"Sourires et émotions","tr":"Yüz ifadeleri ve duygular","id":"Senyum & emosi","hi":"मुस्कान व भावनाएँ","de":"Smileys & Emotionen"},
+    "People & Body": {"ko":"사람 & 몸","ja":"人・体","zh-cn":"人物与身体","zh-tw":"人物與身體","en":"People & Body","es":"Personas y cuerpo","ar":"الأشخاص والجسم","pt":"Pessoas e corpo","ru":"Люди и тело","fr":"Personnes et corps","tr":"İnsanlar ve vücut","id":"Orang & tubuh","hi":"लोग व शरीर","de":"Personen & Körper"},
+    "Animals & Nature": {"ko":"동물 & 자연","ja":"動物・自然","zh-cn":"动物与自然","zh-tw":"動物與自然","en":"Animals & Nature","es":"Animales y naturaleza","ar":"الحيوانات والطبيعة","pt":"Animais e natureza","ru":"Животные и природа","fr":"Animaux et nature","tr":"Hayvanlar ve doğa","id":"Hewan & alam","hi":"जानवर व प्रकृति","de":"Tiere & Natur"},
+    "Food & Drink": {"ko":"음식 & 음료","ja":"食べ物・飲み物","zh-cn":"食物与饮品","zh-tw":"食物與飲品","en":"Food & Drink","es":"Comida y bebida","ar":"الطعام والشراب","pt":"Comida e bebida","ru":"Еда и напитки","fr":"Nourriture & boissons","tr":"Yiyecek & içecek","id":"Makanan & minuman","hi":"भोजन व पेय","de":"Essen & Trinken"},
+    "Travel & Places": {"ko":"여행 & 장소","ja":"旅行・場所","zh-cn":"旅行与地点","zh-tw":"旅行與地點","en":"Travel & Places","es":"Viajes y lugares","ar":"السفر والأماكن","pt":"Viagens e lugares","ru":"Путешествия и места","fr":"Voyages & lieux","tr":"Seyahat & yerler","id":"Perjalanan & tempat","hi":"यात्रा व स्थान","de":"Reisen & Orte"},
+    "Activities": {"ko":"활동","ja":"アクティビティ","zh-cn":"活动","zh-tw":"活動","en":"Activities","es":"Actividades","ar":"أنشطة","pt":"Atividades","ru":"Активности","fr":"Activités","tr":"Aktiviteler","id":"Aktivitas","hi":"गतिविधियाँ","de":"Aktivitäten"},
+    "Objects": {"ko":"사물","ja":"物・道具","zh-cn":"物品","zh-tw":"物品","en":"Objects","es":"Objetos","ar":"أشياء","pt":"Objetos","ru":"Предметы","fr":"Objets","tr":"Nesneler","id":"Objek","hi":"वस्तुएँ","de":"Objekte"},
+    "Symbols": {"ko":"기호","ja":"記号","zh-cn":"符号","zh-tw":"符號","en":"Symbols","es":"Símbolos","ar":"رموز","pt":"Símbolos","ru":"Символы","fr":"Symboles","tr":"Semboller","id":"Simbol","hi":"प्रतीक","de":"Symbole"},
+    "Flags": {"ko":"깃발","ja":"旗","zh-cn":"旗帜","zh-tw":"旗幟","en":"Flags","es":"Banderas","ar":"أعلام","pt":"Bandeiras","ru":"Флаги","fr":"Drapeaux","tr":"Bayraklar","id":"Bendera","hi":"झंडे","de":"Flaggen"},
+    "Component": {"ko":"구성요소","ja":"コンポーネント","zh-cn":"组件","zh-tw":"元件","en":"Component","es":"Componente","ar":"مكوّن","pt":"Componente","ru":"Компонент","fr":"Composant","tr":"Bileşen","id":"Komponen","hi":"घटक","de":"Komponente"}
   };
   const tCat = (en) => (CAT_I18N[en] && (CAT_I18N[en][LC] || CAT_I18N[en]["en"])) || en;
 
@@ -245,9 +209,9 @@
   let rows = [];
   let ready = false;
 
-  // 인버티드 인덱스(웹워커에서 생성)
-  let charIndex = {};   // { char: [rowIdx, ...] }  (비라틴)
-  let tokenIndex = {};  // { token: [rowIdx, ...] } (라틴)
+  // 인버티드 인덱스(웹워커)
+  let charIndex = {};   // { char: [rowIdx, ...] }
+  let tokenIndex = {};  // { token: [rowIdx, ...] }
 
   const workerSrc = `
     self.onmessage = (e)=>{
@@ -282,14 +246,16 @@
       charIndex = e.data.charIndex||{};
       tokenIndex = e.data.tokenIndex||{};
       ready = true;
-      renderChunkedByCategory(rows);
+      renderChunkedByCategory(rows);  // 첫 화면: 점진 렌더 시작
     }
   };
 
   (async function load(){
-    const resp = await fetch(DATA_URL, { cache:"no-store", mode:"cors" });
+    const resp = await fetch(DATA_URL, { cache:"default", mode:"cors" });
     if(!resp.ok) { console.error("CSV 실패", resp.status); return; }
     const csv = await resp.text();
+
+    // 워커 파싱 (Papa의 worker 옵션도 가능하지만, 여기선 메인에서 파싱 → 인덱스는 워커)
     const parsed = Papa.parse(csv, { header:true, skipEmptyLines:true });
 
     const normRow = row => { const o={}; for(const k in row){ o[String(k||"").trim().toLowerCase()] = row[k]; } return o; };
@@ -312,7 +278,6 @@
         ...EXPANDED_SAFE_FIELDS.map(f => r[f] || ""),
         ...TOKEN_AUX_FIELDS.map(f => r[f] || "")
       ].join(",");
-
       const idxStr = toLower(safeStrings);
       const idxChars = idxStr;                          // 비라틴: 문자 포함 검사
       const idxLatinTokens = uniq(splitLatin(idxStr));  // 라틴: 토큰 배열
@@ -326,6 +291,7 @@
       };
     });
 
+    // 인덱스 빌드 요청
     worker.postMessage({
       type:"build",
       data: rows.map((r, i)=>({ i, idxChars: r.idxChars, idxLatinTokens: r.idxLatinTokens }))
@@ -340,7 +306,7 @@
 
   $q.addEventListener("input", () => {
     clearTimeout(t);
-    t = setTimeout(runSearch, 150);
+    t = setTimeout(runSearch, 160); // 약간 더 느긋하게
   });
 
   function unionArrays(arrays){
@@ -352,7 +318,6 @@
   function runSearch(){
     if(!ready){ return; }
     const qRaw = $q.value || "";
-    a:
     const q = toLower(qRaw.trim());
 
     if(!q){
@@ -374,27 +339,18 @@
       const lists = tokens.map(t => tokenIndex[t]);
       candidateIdxs = unionArrays(lists);
     }
-
     if(!candidateIdxs.length){
-      $list.innerHTML = "";
-      $zero.style.display = "block";
-      return;
+      $list.innerHTML = ""; $zero.style.display = "block"; return;
     }
 
     const hits = [];
     for(const i of candidateIdxs){
-      const r = rows[i];
-      if(!r) continue;
-      let score = 0;
-      let matched = false;
+      const r = rows[i]; if(!r) continue;
+      let score = 0, matched = false;
 
       if(!latin){
-        for(const ch of chars){
-          if(r.idxChars.includes(ch)){ matched = true; score += SCORE.tokenHit; }
-        }
-        for(const ch of chars){
-          if(toLower(r.name).includes(ch)){ score += SCORE.nameHit; matched = true; }
-        }
+        for(const ch of chars){ if(r.idxChars.includes(ch)){ matched = true; score += SCORE.tokenHit; } }
+        for(const ch of chars){ if(toLower(r.name).includes(ch)){ score += SCORE.nameHit; matched = true; } }
       }else{
         for(const tkn of tokens){
           if(r.idxLatinTokens.includes(tkn) || toLower(r.name_en).includes(tkn) || toLower(r.name).includes(tkn)){
@@ -406,7 +362,7 @@
       for(const key of (latin ? tokens : chars)){
         if(toLower(r.category).includes(key)) score += SCORE.categoryHit;
       }
-      if(matched){ hits.push({r, score}); }
+      if(matched) hits.push({r, score});
     }
 
     hits.sort((a,b)=> b.score - a.score);
@@ -418,14 +374,9 @@
     if(!query) return esc(text);
     const q = toLower(query);
     const latin = isLatin(q);
-
     if(!latin){
       const set = new Set(q.split(""));
-      let out = "";
-      for(const ch of text){
-        if(set.has(toLower(ch))) out += "<mark>"+esc(ch)+"</mark>";
-        else out += esc(ch);
-      }
+      let out = ""; for(const ch of text){ out += set.has(toLower(ch)) ? "<mark>"+esc(ch)+"</mark>" : esc(ch); }
       return out;
     }else{
       const tokens = uniq(q.split(/[\s,]+/).filter(Boolean)).sort((a,b)=>b.length-a.length);
@@ -449,10 +400,9 @@
     return m;
   }
 
+  // 오프스크린을 생략하면서도 점진 렌더
   function renderChunkedByCategory(items, query=""){
-    $list.innerHTML = "";
-    $zero.style.display = "none";
-
+    $list.innerHTML = ""; $zero.style.display = "none";
     const groups = Array.from(groupBy(items, r=>r.category).entries());
     let catIdx = 0;
 
@@ -488,7 +438,7 @@
           while(tmp.firstChild) grid.appendChild(tmp.firstChild);
           start = end;
           if(start < arr.length) {
-            requestIdleCallback(renderEmojiChunk, {timeout: 50});
+            requestIdleCallback(renderEmojiChunk, {timeout: 80}); // 여유 있게
           }
         }
         renderEmojiChunk();
@@ -496,7 +446,7 @@
       }
       $list.appendChild(frag);
       if(catIdx < groups.length){
-        requestIdleCallback(renderNextCategories, {timeout: 50});
+        requestIdleCallback(renderNextCategories, {timeout: 80});
       }
     }
     renderNextCategories();
@@ -509,14 +459,13 @@
     if(!tile) return;
     const emoji = tile.getAttribute("data-emoji") || tile.querySelector(".glyph")?.textContent || "";
     if(!emoji) return;
-    try{ await navigator.clipboard.writeText(emoji); }catch(e){ /* 환경에 따라 실패 가능, UI만 유지 */ }
+    try{ await navigator.clipboard.writeText(emoji); }catch(e){}
     const span = document.createElement("span");
-    span.className = "copyglyph";
-    span.textContent = emoji;
+    span.className = "copyglyph"; span.textContent = emoji;
     copybar.appendChild(span);
   });
 
-  // placeholder/복사 안내 현지화 텍스트 적용
+  // i18n 텍스트 적용
   (function applyI18N(){
     const q = document.getElementById("q");
     q.placeholder = (I18N_TEXT.placeholder[LC] || I18N_TEXT.placeholder.en) + "…";
