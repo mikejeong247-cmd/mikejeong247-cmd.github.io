@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Emoji Search — Pro (SAFE-only, i18n + Copybar)</title>
+  <title>Emoji Search — Pro (FAST, SAFE-only, i18n + Copybar)</title>
   <style>
     :root{
       --gap:0;
-      --search-h:44px; /* 검색창 높이(복사창은 이의 2배) */
+      --search-h:44px; /* 검색창 높이 (복사창은 이의 2배) */
     }
     body{
       font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;
@@ -49,8 +49,8 @@
     /* 이모지 그리드: 40px, 가로/세로 10px, 600px 박스 */
     .emojis{
       display:flex;flex-wrap:wrap;
-      column-gap:10px;row-gap:10px;  /* ← 가로 10px / 세로 10px */
-      width:600px;margin:0 auto;      /* ← 고정 600px 박스, 가운데 정렬 */
+      column-gap:10px;row-gap:10px;  /* 가로 10px / 세로 10px */
+      width:600px;margin:0 auto;      /* 고정 600px 박스, 가운데 정렬 */
     }
     .e{
       width:40px;height:40px;
@@ -72,6 +72,10 @@
     mark{background:#fff2a8;padding:0 .5px;border-radius:2px}
 
     .zero{margin-top:12px;color:#666;text-align:center}
+
+    /* (선택) 광고 슬롯 기본 스타일 - 필요 시 활성화
+    .ad-slot{width:600px;height:280px;margin:20px auto;border:1px solid #eee;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999;font-size:12px}
+    */
   </style>
 </head>
 <body>
@@ -113,9 +117,13 @@
     "keywords_id_safe","keywords_hi_safe","keywords_de_safe"
   ];
 
-  // 4) 검색/정렬 파라미터 — 전부 노출
+  // 4) 검색/정렬 파라미터 — 전부 노출(렌더는 청크로)
   const MAX_RESULTS = Infinity;
   const SCORE = { nameHit: 3, tokenHit: 1, categoryHit: 0.5 };
+
+  // 5) 렌더링 최적화 파라미터
+  const CATEGORY_CHUNK = 2;   // 한 번에 붙일 카테고리 섹션 수
+  const EMOJI_CHUNK    = 200; // 한 섹션 안에서 한 번에 붙일 이모지 수
 
   /** ====== i18n: 접속 언어 감지 + 문자열/카테고리 현지화 ====== */
   const rawLang = (navigator.language || "en").toLowerCase();
@@ -221,6 +229,56 @@
   let rows = [];
   let ready = false;
 
+  // 인버티드 인덱스(웹워커에서 생성)
+  let charIndex = {};   // { char: [rowIdx, ...] }  (비라틴 문자)
+  let tokenIndex = {};  // { token: [rowIdx, ...] } (라틴 토큰)
+
+  // 워커 생성(인라인 소스 → Blob → Worker)
+  const workerSrc = `
+    self.onmessage = (e)=>{
+      const {type, data} = e.data||{};
+      if(type!=="build") return;
+      const charIndex = Object.create(null);
+      const tokenIndex = Object.create(null);
+
+      const isLatinChar = (c)=> /[a-z0-9]/i.test(c);
+      for(const item of data){ // item: {i, idxChars, idxLatinTokens}
+        const i = item.i|0;
+
+        // 비라틴 문자 인덱스(문자 1글자 OR 매칭)
+        const set = new Set(item.idxChars.split(""));
+        for(const ch of set){
+          if(!ch || isLatinChar(ch) || ch===" " || ch==="," || ch==="." || ch==="_" || ch==="-" ) continue;
+          if(!charIndex[ch]) charIndex[ch] = [];
+          charIndex[ch].push(i);
+        }
+
+        // 라틴 토큰 인덱스(단어 OR 매칭)
+        for(const t of item.idxLatinTokens||[]){
+          if(!t) continue;
+          if(!tokenIndex[t]) tokenIndex[t] = [];
+          tokenIndex[t].push(i);
+        }
+      }
+      // 정렬(작은 배열이 교집합/합집합에 유리)
+      for(const k in charIndex){ charIndex[k].sort((a,b)=>a-b); }
+      for(const k in tokenIndex){ tokenIndex[k].sort((a,b)=>a-b); }
+
+      self.postMessage({type:"built", charIndex, tokenIndex});
+    };
+  `;
+  const worker = new Worker(URL.createObjectURL(new Blob([workerSrc], {type:"text/javascript"})));
+
+  worker.onmessage = (e)=>{
+    if(e.data && e.data.type==="built"){
+      charIndex = e.data.charIndex||{};
+      tokenIndex = e.data.tokenIndex||{};
+      // 첫 화면 렌더(카테고리 청크 렌더)
+      ready = true;
+      renderChunkedByCategory(rows);
+    }
+  };
+
   (async function load(){
     const resp = await fetch(DATA_URL, { cache:"no-store", mode:"cors" });
     if(!resp.ok) { console.error("CSV 실패", resp.status); return; }
@@ -232,12 +290,10 @@
     if(!data.length) { console.error("CSV 비어있음"); return; }
 
     const headers = Object.keys(data[0] || {});
-
     const expandVariants = (baseList) => {
       const bases = baseList.map(b => b.toLowerCase());
       return headers.filter(h => bases.some(base => h === base || h.startsWith(base + "_")));
     };
-
     const EXPANDED_SAFE_FIELDS = expandVariants(SAFE_FIELDS_BASE);
     const nameCandidatesFor = (base) => ([`${base}_manual_alt`, `${base}_alt`, `${base}_manual`, base]);
     const NAME_FIELDS_ALL = NAME_FIELDS_BASE.flatMap(nameCandidatesFor);
@@ -263,8 +319,11 @@
       };
     });
 
-    ready = true;
-    render(rows); // 첫 화면: 카테고리별 600px 박스 내 40px 이모지
+    // 워커로 인덱스 빌드 요청(메인 스레드 가벼움)
+    worker.postMessage({
+      type:"build",
+      data: rows.map((r, i)=>({ i, idxChars: r.idxChars, idxLatinTokens: r.idxLatinTokens }))
+    });
   })();
 
   /** ====== 검색 ====== */
@@ -275,8 +334,14 @@
 
   $q.addEventListener("input", () => {
     clearTimeout(t);
-    t = setTimeout(runSearch, 120);
+    t = setTimeout(runSearch, 150); // 디바운스 약간 늘려 부드럽게
   });
+
+  function unionArrays(arrays){
+    const set = new Set();
+    for(const a of arrays){ if(!a) continue; for(const v of a) set.add(v); }
+    return [...set];
+  }
 
   function runSearch(){
     if(!ready){ return; }
@@ -285,7 +350,7 @@
 
     if(!q){
       document.body.classList.remove("searching");
-      render(rows);
+      renderChunkedByCategory(rows);
       return;
     }
     document.body.classList.add("searching");
@@ -294,8 +359,26 @@
     const chars  = latin ? [] : uniq(q.split("").filter(Boolean));
     const tokens = latin ? uniq(q.split(/[\s,]+/).map(toLower).filter(Boolean)) : [];
 
+    // 인버티드 인덱스 기반 후보 수집(전수 스캔 제거)
+    let candidateIdxs;
+    if(!latin){
+      const lists = chars.map(ch => charIndex[ch]);
+      candidateIdxs = unionArrays(lists);
+    }else{
+      const lists = tokens.map(t => tokenIndex[t]);
+      candidateIdxs = unionArrays(lists);
+    }
+
+    if(!candidateIdxs.length){
+      $list.innerHTML = "";
+      $zero.style.display = "block";
+      return;
+    }
+
     const hits = [];
-    for(const r of rows){
+    for(const i of candidateIdxs){
+      const r = rows[i];
+      if(!r) continue;
       let score = 0;
       let matched = false;
 
@@ -321,10 +404,10 @@
     }
 
     hits.sort((a,b)=> b.score - a.score);
-    render(hits.slice(0, MAX_RESULTS).map(x=>x.r), q);
+    renderChunkedByCategory(hits.slice(0, MAX_RESULTS).map(x=>x.r), q);
   }
 
-  /** ====== 렌더 & 하이라이트 & 카테고리 i18n ====== */
+  /** ====== 렌더(청크) & 하이라이트 & 카테고리 i18n ====== */
   function highlight(text, query){
     if(!query) return esc(text);
     const q = toLower(query);
@@ -360,23 +443,32 @@
     return m;
   }
 
-  function render(items, query=""){
-    if(!items.length){
-      $list.innerHTML = "";
-      $zero.style.display = "block";
-      return;
-    }
+  // 카테고리/이모지 청크 렌더(스크롤 버벅임 방지)
+  function renderChunkedByCategory(items, query=""){
+    $list.innerHTML = "";
     $zero.style.display = "none";
 
-    const groups = groupBy(items, r=>r.category);
-    let html = "";
+    const groups = Array.from(groupBy(items, r=>r.category).entries());
+    let catIdx = 0;
 
-    for(const [cat, arr] of groups){
-      const catLabel = tCat(cat);
-      html += `<section class="sec">
-        <div class="cat">${esc(catLabel)} <span class="cnt">${arr.length}</span></div>
-        <div class="emojis">
-          ${arr.map(r => {
+    function renderNextCategories(){
+      if(catIdx >= groups.length) return;
+      const frag = document.createDocumentFragment();
+
+      for(let c=0; c<CATEGORY_CHUNK && catIdx<groups.length; c++, catIdx++){
+        const [cat, arr] = groups[catIdx];
+        const sec = document.createElement("section");
+        sec.className = "sec";
+        sec.innerHTML = `<div class="cat">${esc(tCat(cat))} <span class="cnt">${arr.length}</span></div>
+                         <div class="emojis"></div>`;
+        const grid = sec.querySelector(".emojis");
+
+        // 이모지도 청크로 붙이기
+        let start = 0;
+        function renderEmojiChunk(){
+          const end = Math.min(start + EMOJI_CHUNK, arr.length);
+          const slice = arr.slice(start, end);
+          const inner = slice.map(r => {
             const title = esc(r.name || "");
             const nm = query ? `<div class="nm">${highlight(r.name || "", query)}</div>` : "";
             const kw = (query && r.safeKo) ? `<div class="kw">${highlight(r.safeKo, query)}</div>` : "";
@@ -384,14 +476,33 @@
               <div class="e" data-emoji="${esc(r.emoji||'')}" title="${title}">
                 <span class="glyph">${esc(r.emoji || "⬜")}</span>
                 ${ (nm || kw) ? `<div class="d">${nm}${kw}</div>` : "" }
-              </div>
-            `;
-          }).join("")}
-        </div>
-      </section>`;
-    }
+              </div>`;
+          }).join("");
+          const tmp = document.createElement("div");
+          tmp.innerHTML = inner;
+          while(tmp.firstChild) grid.appendChild(tmp.firstChild);
+          start = end;
+          if(start < arr.length) {
+            requestIdleCallback(renderEmojiChunk, {timeout: 50});
+          }
+        }
+        renderEmojiChunk();
+        frag.appendChild(sec);
 
-    $list.innerHTML = html;
+        // (선택) 광고 슬롯을 넣고 싶다면 여기에서 주기적으로 삽입하세요.
+        // if((catIdx % 2) === 0){ 
+        //   const ad = document.createElement("div");
+        //   ad.className = "ad-slot";
+        //   ad.textContent = "Ad slot (600x280 reserved)";
+        //   frag.appendChild(ad);
+        // }
+      }
+      $list.appendChild(frag);
+      if(catIdx < groups.length){
+        requestIdleCallback(renderNextCategories, {timeout: 50});
+      }
+    }
+    renderNextCategories();
   }
 
   /** ====== 클릭 → 클립보드 복사 + 복사창에 25px 이모지 누적 ====== */
@@ -407,6 +518,13 @@
     span.textContent = emoji;
     copybar.appendChild(span);
   });
+
+  // 마지막: placeholder/복사 안내 현지화 텍스트 설정
+  (function applyI18N(){
+    const q = document.getElementById("q");
+    q.placeholder = (I18N_TEXT.placeholder[LC] || I18N_TEXT.placeholder.en) + "…";
+    document.getElementById("copyhint").textContent = I18N_TEXT.copyHint[LC] || I18N_TEXT.copyHint.en;
+  })();
   </script>
 </body>
 </html>
