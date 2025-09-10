@@ -6,38 +6,60 @@
   <title>Emoji Search — Pro (SAFE-only, Category View)</title>
   <style>
     :root{--gap:0;}
-    body{font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;margin:16px;color:#222;}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-    .search{flex:1;min-width:260px;max-width:680px;padding:10px 14px;font-size:16px;border:1px solid #ddd;border-radius:12px;outline:none}
-    .hint{color:#666;font-size:12px}
+    body{
+      font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;
+      margin:16px;color:#222;
+    }
 
-    /* 상태 출력 */
-    .status{font-size:12px;color:#666;margin:6px 0 8px;display:none}
-    .status.err{color:#c00}
-    .status.ok{color:#2a7}
+    /* 상단 도구막대: 중앙 정렬 */
+    .toolbar{
+      display:flex;justify-content:center;align-items:center;
+      gap:10px;flex-wrap:wrap;margin-bottom:10px
+    }
+    .search{
+      min-width:260px;max-width:680px;width:100%;
+      padding:10px 14px;font-size:16px;
+      border:1px solid #ddd;border-radius:12px;outline:none
+    }
+    /* 안내/상태 문구 숨김 */
+    .hint{display:none!important}
+    .status{display:none!important}
 
     /* 카테고리 섹션 */
     #list{display:block}
     .sec{margin:10px 0 14px}
-    .cat{font-weight:700;font-size:13px;margin:6px 0 4px;display:flex;align-items:center;gap:6px}
+    .cat{
+      font-weight:700;font-size:13px;margin:6px 0 4px;
+      display:flex;align-items:center;gap:6px;justify-content:center;
+    }
     .cnt{color:#999;font-weight:400;font-size:12px}
 
-    /* 이모지 타일: 10px, 가로 간격 0, 세로 2px */
-    .emojis{display:flex;flex-wrap:wrap;column-gap:0;row-gap:2px}
-    .e{width:10px;height:10px;display:inline-flex;align-items:center;justify-content:center}
-    .glyph{font-size:10px;line-height:1}
+    /* 이모지 타일: 15px, 가로 간격 1px, 세로 3px, 가로폭 600px 박스 안에서만 배치 */
+    .emojis{
+      display:flex;flex-wrap:wrap;
+      column-gap:1px;row-gap:3px;
+      width:600px; /* ← 한 줄 가용 폭 고정 */
+      margin:0 auto; /* 가운데 배치 */
+    }
+    .e{
+      width:15px;height:15px;
+      display:inline-flex;align-items:center;justify-content:center;
+    }
+    .glyph{font-size:15px;line-height:1}
 
-    /* 상세정보(name/keywords): 검색 시에만 보임 */
+    /* 상세정보(name/keywords): 검색할 때만 노출 */
     .d{display:none}
     body.searching .emojis{display:block}
-    body.searching .e{width:auto;height:auto;display:flex;align-items:flex-start;gap:8px;margin:4px 0}
-    body.searching .glyph{font-size:10px;line-height:1;margin-top:2px}
+    body.searching .e{
+      width:auto;height:auto;display:flex;align-items:flex-start;gap:8px;margin:4px 0
+    }
+    body.searching .glyph{font-size:15px;line-height:1;margin-top:2px}
     body.searching .d{display:block}
     .nm{font-weight:700;font-size:12px;margin-bottom:2px}
     .kw{color:#666;font-size:11px}
     mark{background:#fff2a8;padding:0 .5px;border-radius:2px}
 
-    .zero{margin-top:12px;color:#666}
+    .zero{margin-top:12px;color:#666;text-align:center}
   </style>
 </head>
 <body>
@@ -78,8 +100,6 @@
   const SCORE = { nameHit: 3, tokenHit: 1, categoryHit: 0.5 };
 
   /** ====== 유틸 ====== */
-  const $ = sel => document.querySelector(sel);
-  const setStatus = (msg, cls="") => { const s=$("#status"); s.textContent=msg; s.className="status "+cls; s.style.display=msg?"block":"none"; };
   const rmDiacritics = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   const toLower = s => rmDiacritics(String(s||"")).toLowerCase();
   const splitLatin = s => toLower(s).split(/[^a-z0-9]+/).filter(t=>t.length>1); // 라틴: 2자 이상 토큰
@@ -94,50 +114,44 @@
 
   (async function load(){
     try{
-      setStatus("데이터 불러오는 중…");
-      // CSV 직접 가져와 상태코드/오류를 명확히 확인
+      // CSV 가져오기
       const resp = await fetch(DATA_URL, { cache:"no-store", mode:"cors" });
       if(!resp.ok) throw new Error("HTTP "+resp.status+" — CSV 접근 불가");
       const csv = await resp.text();
-      setStatus("파싱 중…");
 
-      // CSV 파싱
+      // 파싱
       const parsed = Papa.parse(csv, { header:true, skipEmptyLines:true });
-      if(parsed.errors && parsed.errors.length){
-        console.warn("Papa errors:", parsed.errors);
-      }
 
-      // 0) 키 소문자 정규화(zh-CN → zh-cn)
+      // 키 소문자 정규화(zh-CN → zh-cn)
       const normRow = row => { const o={}; for(const k in row){ o[String(k||"").trim().toLowerCase()] = row[k]; } return o; };
       const data = parsed.data.map(normRow);
       if(!data.length) throw new Error("CSV가 비어있습니다 (행 없음)");
 
       const headers = Object.keys(data[0] || {});
 
-      // 1) *_alt, *_v2 같은 변형 자동 흡수
+      // *_alt, *_v2 자동 흡수
       const expandVariants = (baseList) => {
         const bases = baseList.map(b => b.toLowerCase());
         return headers.filter(h => bases.some(base => h === base || h.startsWith(base + "_")));
       };
 
-      // 2) SAFE 인덱스 필드 집합(alt 포함)
+      // SAFE 인덱스 필드 집합(alt 포함)
       const EXPANDED_SAFE_FIELDS = expandVariants(SAFE_FIELDS_BASE);
 
-      // 3) 이름 후보: manual_alt > alt > manual > base
+      // 이름 후보: manual_alt > alt > manual > base
       const nameCandidatesFor = (base) => ([`${base}_manual_alt`, `${base}_alt`, `${base}_manual`, base]);
       const NAME_FIELDS_ALL = NAME_FIELDS_BASE.flatMap(nameCandidatesFor);
 
-      // 4) 라틴 토큰 보조(영문 이름 계열)
-      const TOKEN_AUX_FIELDS = ["name_en","name_en_alt","name_en_manual","name_en_manual_alt"].filter(f => headers.includes(f));
+      // 라틴 토큰 보조(영문 이름 계열)
+      const TOKEN_AUX_FIELDS = ["name_en","name_en_alt","name_en_manual","name_en_manual_alt"]
+        .filter(f => headers.includes(f));
 
-      // 5) 필수 필드 점검
+      // 필수 필드 점검
       const required = ["id","category","code","emoji"];
       const missing = required.filter(k => !headers.includes(k));
-      if(missing.length){
-        throw new Error("필수 헤더 누락: " + missing.join(", "));
-      }
+      if(missing.length){ throw new Error("필수 헤더 누락: " + missing.join(", ")); }
 
-      // 6) 레코드 가공
+      // 레코드 가공
       rows = data.map(r => {
         const name = (NAME_FIELDS_ALL.find(f => r[f]) && NAME_FIELDS_ALL.map(f=>r[f]).find(Boolean)) || r["name_en"] || "";
         const safeStrings = [
@@ -159,11 +173,10 @@
       });
 
       ready = true;
-      setStatus(`로드 완료 — ${rows.length}개 항목`, "ok");
-      render(rows); // 처음엔 카테고리별 전체 이모지(10px 타일) 표시
+      render(rows); // 처음엔 전체(카테고리별, 600px 박스 내 15px 이모지) 표시
     }catch(e){
-      setStatus("로드 실패: " + (e && e.message ? e.message : e), "err");
       console.error(e);
+      // 상태 문구는 숨김 처리 요청이라 콘솔만 사용
     }
   })();
 
@@ -175,7 +188,7 @@
 
   $q.addEventListener("input", () => {
     clearTimeout(t);
-    t = setTimeout(runSearch, 120); // 입력 반응 안정화
+    t = setTimeout(runSearch, 120); // 입력 안정화
   });
 
   function runSearch(){
