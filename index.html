@@ -6,41 +6,31 @@
   <title>Emoji Search — Pro (SAFE-only, Category View)</title>
   <style>
     :root{--gap:0;}
-    body{
-      font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;
-      margin:16px;color:#222;
-    }
+    body{font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;margin:16px;color:#222;}
     .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-    .search{
-      flex:1;min-width:260px;max-width:680px;padding:10px 14px;font-size:16px;
-      border:1px solid #ddd;border-radius:12px;outline:none
-    }
+    .search{flex:1;min-width:260px;max-width:680px;padding:10px 14px;font-size:16px;border:1px solid #ddd;border-radius:12px;outline:none}
     .hint{color:#666;font-size:12px}
+
+    /* 상태 출력 */
+    .status{font-size:12px;color:#666;margin:6px 0 8px;display:none}
+    .status.err{color:#c00}
+    .status.ok{color:#2a7}
+
     /* 카테고리 섹션 */
     #list{display:block}
     .sec{margin:10px 0 14px}
-    .cat{
-      font-weight:700;font-size:13px;margin:6px 0 4px;display:flex;align-items:center;gap:6px
-    }
+    .cat{font-weight:700;font-size:13px;margin:6px 0 4px;display:flex;align-items:center;gap:6px}
     .cnt{color:#999;font-weight:400;font-size:12px}
 
-    /* 이모지 영역 — 기본(검색어 없음): 초소형 타일, 가로 간격 0 / 세로 간격 2px */
-    .emojis{
-      display:flex;flex-wrap:wrap;
-      column-gap:0;row-gap:2px; /* ← 가로 gap=0, 세로 gap=2px */
-    }
-    .e{
-      width:10px;height:10px;
-      display:inline-flex;align-items:center;justify-content:center;
-    }
+    /* 이모지 타일: 10px, 가로 간격 0, 세로 2px */
+    .emojis{display:flex;flex-wrap:wrap;column-gap:0;row-gap:2px}
+    .e{width:10px;height:10px;display:inline-flex;align-items:center;justify-content:center}
     .glyph{font-size:10px;line-height:1}
 
-    /* 상세정보(name/keywords): 검색할 때만 보임 */
+    /* 상세정보(name/keywords): 검색 시에만 보임 */
     .d{display:none}
     body.searching .emojis{display:block}
-    body.searching .e{
-      width:auto;height:auto;display:flex;align-items:flex-start;gap:8px;margin:4px 0
-    }
+    body.searching .e{width:auto;height:auto;display:flex;align-items:flex-start;gap:8px;margin:4px 0}
     body.searching .glyph{font-size:10px;line-height:1;margin-top:2px}
     body.searching .d{display:block}
     .nm{font-weight:700;font-size:12px;margin-bottom:2px}
@@ -56,6 +46,7 @@
     <span class="hint">SAFE 전용 · 대카테고리별 묶음 · 검색 시에만 name/keywords 표시</span>
   </div>
 
+  <div id="status" class="status"></div>
   <div id="list"></div>
   <div id="zero" class="zero" style="display:none;">결과가 없습니다. 철자/언어를 바꿔보세요.</div>
 
@@ -63,18 +54,18 @@
   <script>
   /** ====== 설정 (폼절정 전용) ====== */
 
-  // 1) CSV 경로: BUILD 시트를 CSV로 공개한 최종 주소를 그대로 넣으세요
-  const DATA_URL = "여기에_내_BUILD_CSV_URL_붙여넣기";
+  // 1) BUILD 시트를 CSV로 공개한 최종 주소를 넣으세요.
+  const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=813614977&single=true&output=csv";
 
-  // 2) 카드 타이틀(표시 이름) 우선순위 기본: 한→일→중→영 (필요 시 순서 바꾸세요)
-  //    실제로는 manual_alt > alt > manual > base 순으로 자동 보강됩니다.
+  // 2) 표시 이름 우선순위: ko → ja → zh-cn → en (필요 시 순서 변경)
+  //    이름은 manual_alt > alt > manual > base 순으로 자동 보강됩니다.
   const NAME_FIELDS_BASE = [
     "name_ko","name_ja","name_zh-cn","name_en",
     "name_es","name_ar","name_pt","name_ru","name_fr","name_tr",
     "name_id","name_hi","name_de"
   ];
 
-  // 3) SAFE 인덱스 기본 키 (여기에 대응하는 *_alt, *_v2 등은 자동 흡수)
+  // 3) SAFE 인덱스 기본 키(여기에 대응하는 *_alt, *_v2 등은 자동 흡수)
   const SAFE_FIELDS_BASE = [
     "keywords_ko_safe","keywords_ja_safe","keywords_zh-cn_safe",
     "keywords_es_safe","keywords_ar_safe","keywords_pt_safe",
@@ -82,53 +73,71 @@
     "keywords_id_safe","keywords_hi_safe","keywords_de_safe"
   ];
 
-  // 4) 검색/정렬 파라미터
-  //    요청사항: "다 보여주고" → Infinity로 전체 노출
+  // 4) 검색/정렬 파라미터 — 전부 노출(성능 유의)
   const MAX_RESULTS = Infinity;
   const SCORE = { nameHit: 3, tokenHit: 1, categoryHit: 0.5 };
 
   /** ====== 유틸 ====== */
+  const $ = sel => document.querySelector(sel);
+  const setStatus = (msg, cls="") => { const s=$("#status"); s.textContent=msg; s.className="status "+cls; s.style.display=msg?"block":"none"; };
   const rmDiacritics = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   const toLower = s => rmDiacritics(String(s||"")).toLowerCase();
   const splitLatin = s => toLower(s).split(/[^a-z0-9]+/).filter(t=>t.length>1); // 라틴: 2자 이상 토큰
   const uniq = arr => [...new Set(arr)];
   // 라틴 알파벳 여부로 분기(라틴: 토큰 OR / 비라틴: 문자 OR)
   const isLatin = s => /^[a-z0-9\s,._-]+$/i.test(rmDiacritics(s||""));
+  const esc = s => (s||"").replace(/[&<>"]/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 
   /** ====== 데이터 로드 ====== */
   let rows = [];
   let ready = false;
 
-  Papa.parse(DATA_URL, {
-    download:true, header:true, skipEmptyLines:true,
-    complete: (res) => {
-      // 0) 모든 키를 소문자 정규화(zh-CN → zh-cn)
-      const normRow = row => {
-        const o={}; for(const k in row){ o[String(k||"").trim().toLowerCase()] = row[k]; } return o;
-      };
-      const data = res.data.map(normRow);
+  (async function load(){
+    try{
+      setStatus("데이터 불러오는 중…");
+      // CSV 직접 가져와 상태코드/오류를 명확히 확인
+      const resp = await fetch(DATA_URL, { cache:"no-store", mode:"cors" });
+      if(!resp.ok) throw new Error("HTTP "+resp.status+" — CSV 접근 불가");
+      const csv = await resp.text();
+      setStatus("파싱 중…");
+
+      // CSV 파싱
+      const parsed = Papa.parse(csv, { header:true, skipEmptyLines:true });
+      if(parsed.errors && parsed.errors.length){
+        console.warn("Papa errors:", parsed.errors);
+      }
+
+      // 0) 키 소문자 정규화(zh-CN → zh-cn)
+      const normRow = row => { const o={}; for(const k in row){ o[String(k||"").trim().toLowerCase()] = row[k]; } return o; };
+      const data = parsed.data.map(normRow);
+      if(!data.length) throw new Error("CSV가 비어있습니다 (행 없음)");
+
       const headers = Object.keys(data[0] || {});
 
-      // 1) *_alt, *_v2 같은 변형을 자동 흡수
+      // 1) *_alt, *_v2 같은 변형 자동 흡수
       const expandVariants = (baseList) => {
         const bases = baseList.map(b => b.toLowerCase());
         return headers.filter(h => bases.some(base => h === base || h.startsWith(base + "_")));
       };
 
-      // 2) SAFE 인덱스에 넣을 모든 필드(alt 변형 포함)
+      // 2) SAFE 인덱스 필드 집합(alt 포함)
       const EXPANDED_SAFE_FIELDS = expandVariants(SAFE_FIELDS_BASE);
 
-      // 3) 이름 선택 후보: manual_alt > alt > manual > base
-      const nameCandidatesFor = (base) => ([
-        `${base}_manual_alt`, `${base}_alt`, `${base}_manual`, base
-      ]);
+      // 3) 이름 후보: manual_alt > alt > manual > base
+      const nameCandidatesFor = (base) => ([`${base}_manual_alt`, `${base}_alt`, `${base}_manual`, base]);
       const NAME_FIELDS_ALL = NAME_FIELDS_BASE.flatMap(nameCandidatesFor);
 
-      // 4) 라틴 토큰 보조(영문 이름 계열이 있으면 추가)
-      const TOKEN_AUX_FIELDS = ["name_en","name_en_alt","name_en_manual","name_en_manual_alt"]
-        .filter(f => headers.includes(f));
+      // 4) 라틴 토큰 보조(영문 이름 계열)
+      const TOKEN_AUX_FIELDS = ["name_en","name_en_alt","name_en_manual","name_en_manual_alt"].filter(f => headers.includes(f));
 
-      // 5) 레코드 가공
+      // 5) 필수 필드 점검
+      const required = ["id","category","code","emoji"];
+      const missing = required.filter(k => !headers.includes(k));
+      if(missing.length){
+        throw new Error("필수 헤더 누락: " + missing.join(", "));
+      }
+
+      // 6) 레코드 가공
       rows = data.map(r => {
         const name = (NAME_FIELDS_ALL.find(f => r[f]) && NAME_FIELDS_ALL.map(f=>r[f]).find(Boolean)) || r["name_en"] || "";
         const safeStrings = [
@@ -137,10 +146,8 @@
         ].join(",");
 
         const idxStr = toLower(safeStrings);
-        const idxChars = idxStr;                          // 비라틴: 문자 포함 검사
-        const idxLatinTokens = uniq(splitLatin(idxStr));  // 라틴: 토큰 배열
-
-        // ko SAFE 대표(하이라이트 표시용)
+        const idxChars = idxStr;                         // 비라틴: 문자 포함 검사
+        const idxLatinTokens = uniq(splitLatin(idxStr)); // 라틴: 토큰 배열
         const safeKo = r["keywords_ko_safe"] || r["keywords_ko_safe_alt"] || "";
 
         return {
@@ -152,9 +159,13 @@
       });
 
       ready = true;
-      render(rows); // 처음엔 전체(카테고리별) 표시
+      setStatus(`로드 완료 — ${rows.length}개 항목`, "ok");
+      render(rows); // 처음엔 카테고리별 전체 이모지(10px 타일) 표시
+    }catch(e){
+      setStatus("로드 실패: " + (e && e.message ? e.message : e), "err");
+      console.error(e);
     }
-  });
+  })();
 
   /** ====== 검색 ====== */
   const $q = document.getElementById("q");
@@ -164,7 +175,7 @@
 
   $q.addEventListener("input", () => {
     clearTimeout(t);
-    t = setTimeout(runSearch, 100); // 살짝 여유
+    t = setTimeout(runSearch, 120); // 입력 반응 안정화
   });
 
   function runSearch(){
@@ -174,7 +185,7 @@
 
     if(!q){
       document.body.classList.remove("searching");
-      render(rows); // 전체(카테고리별, 초소형 이모지만)
+      render(rows);
       return;
     }
     document.body.classList.add("searching");
@@ -214,7 +225,7 @@
         }
       }
 
-      // 카테고리 보너스(언어와 무관)
+      // 카테고리 보너스
       for(const key of (latin ? tokens : chars)){
         if(toLower(r.category).includes(key)) score += SCORE.categoryHit;
       }
@@ -222,14 +233,11 @@
       if(matched){ hits.push({r, score}); }
     }
 
-    // 점수 정렬 → 상위부터 전부 노출(MAX_RESULTS = Infinity)
     hits.sort((a,b)=> b.score - a.score);
     render(hits.slice(0, MAX_RESULTS).map(x=>x.r), q);
   }
 
   /** ====== 렌더 & 하이라이트 ====== */
-  function esc(s){return (s||"").replace(/[&<>"]/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
-
   function highlight(text, query){
     if(!query) return esc(text);
     const q = toLower(query);
