@@ -1,257 +1,205 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Emoji Site</title>
-  <meta name="description" content="Emoji search and copy site" />
+  <title>Emoji Search — Pro (SAFE-only)</title>
   <style>
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,sans-serif;margin:16px}
-    .wrap{max-width:1024px;margin:0 auto}
-
-    .topbar{display:grid;grid-template-columns:1fr 220px;gap:12px;align-items:center}
-    #q{position:sticky;top:0;z-index:10;background:#fff;width:100%;padding:12px;font-size:16px;border:1px solid #ddd;border-radius:10px}
-    #cat{width:100%;padding:12px;font-size:14px;border:1px solid #ddd;border-radius:10px;background:#fff}
-    .hint{color:#666;font-size:12px;margin-top:6px}
-
-    /* 🔧 목록/그리드 (간격 0) */
-    #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:0;margin-top:16px}
-    .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:0}
-
-    /* 🔧 카드(둥근 네모/배경/테두리/패딩 제거) */
-    .card{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:center;padding:0;margin:0;background:none;border:none;border-radius:0}
-
-    /* 🔧 이모지 크기 (원하면 숫자만 바꾸면 됨) */
-    .emoji{font-size:28px;line-height:1.0}
-
-    /* 이름 숨김 */
-    .name{display:none}
-
-    .toast{position:fixed;right:16px;bottom:16px;background:#222;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .2s}
-    .toast.show{opacity:1}
-    .err{background:#fff3f3;border:1px solid #ffcccc;color:#b30000;padding:10px;border-radius:10px;margin-top:12px;font-size:13px}
-
-    /* 카테고리 섹션 */
-    .section{margin-top:28px}
-    .section h2{font-size:18px;margin:6px 0 10px 2px}
+    :root{--gap:14px;}
+    body{font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;
+         margin:24px;color:#222;}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+    .search{flex:1;min-width:260px;max-width:640px;padding:12px 16px;font-size:18px;
+            border:1px solid #ddd;border-radius:12px;outline:none}
+    .hint{color:#666;font-size:13px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(180px,1fr));gap:var(--gap);}
+    .card{border:1px solid #eee;border-radius:12px;padding:12px 14px;background:#fff}
+    .emoji{font-size:36px;line-height:1;margin-bottom:6px}
+    .name{font-weight:700;margin:2px 0 6px}
+    .meta{color:#666;font-size:12px}
+    mark{background:#fff2a8;padding:0 .5px;border-radius:2px}
+    .zero{margin-top:16px;color:#666}
   </style>
-
-  <!-- ✅ 다국어 페이지 알림: canonical + hreflang 세트 -->
-<link rel="canonical" href="https://mikejeong247-cmd.github.io/">
-
-<link rel="alternate" href="https://mikejeong247-cmd.github.io/?lang=x-default" hreflang="x-default">
-<link rel="alternate" href="https://mikejeong247-cmd.github.io/?lang=en" hreflang="en">
-<link rel="alternate" href="https://mikejeong247-cmd.github.io/?lang=ko" hreflang="ko">
-<link rel="alternate" href="https://mikejeong247-cmd.github.io/?lang=zh-CN" hreflang="zh-CN">
-<!-- 필요 시 추가
-<link rel="alternate" href="https://mikejeong247-cmd.github.io/?lang=es" hreflang="es">
-<link rel="alternate" href="https://mikejeong247-cmd.github.io/?lang=ja" hreflang="ja">
-<link rel="alternate" href="https://mikejeong247-cmd.github.io/?lang=fr" hreflang="fr">
-<link rel="alternate" href="https://mikejeong247-cmd.github.io/?lang=de" hreflang="de">
--->
-
-<meta name="google-site-verification" content="vciw4N79FmEArOFdWHWDeED3fkN_7LEneyOisJGfnhA" />
-  
 </head>
 <body>
-  <div class="wrap">
-    <h1>🌍 Emoji Site</h1>
-
-    <!-- 검색 + 카테고리 필터 -->
-    <div class="topbar">
-      <input id="q" type="text" placeholder="검색 / Search (모든 언어 이름과 카테고리 검색)" />
-      <select id="cat">
-        <option value="__ALL__">전체 카테고리</option>
-      </select>
-    </div>
-    <div class="hint">카드를 클릭하면 이모지가 복사됩니다.</div>
-
-    <!-- 결과 영역 -->
-    <div id="grid"></div>      <!-- 검색 결과: 평평 목록 -->
-    <div id="sections"></div>  <!-- 기본: 카테고리 그룹 -->
-    <div id="error" class="err" style="display:none;"></div>
+  <div class="toolbar">
+    <input id="q" class="search" placeholder="검색: 하트 / ㅋㅋ / 草 / ok … (CJK은 글자 1개라도 겹치면 노출)">
+    <span class="hint">SAFE 전용 매칭 · 밈 제외 · 경량 점수화</span>
   </div>
+  <div id="list" class="grid"></div>
+  <div id="zero" class="zero" style="display:none;">결과가 없습니다. 철자/언어를 바꿔보세요.</div>
 
-  <div id="toast" class="toast">📋 복사되었습니다</div>
-
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
-    /* ---------- 1) 언어 자동 결정 ---------- */
-    function normalizeLocale(l){
-      l=(l||"").toLowerCase();
-      if(l.startsWith("zh-cn")||l==="zh-hans") return "zh-CN";
-      if(l.startsWith("zh-tw")||l==="zh-hant") return "zh-TW";
-      if(l.startsWith("ko")) return "ko";
-      if(l.startsWith("en")) return "en";
-      if(l.startsWith("es")) return "es";
-      if(l.startsWith("zh")) return "zh";
-      if(l.startsWith("ja")) return "ja";
-      if(l.startsWith("fr")) return "fr";
-      if(l.startsWith("de")) return "de";
-      if(l.startsWith("pt")) return "pt";
-      if(l.startsWith("ru")) return "ru";
-      if(l.startsWith("ar")) return "ar";
-      return "en";
-    }
-    const urlParams=new URLSearchParams(window.location.search);
-    const urlLang=urlParams.get("lang");
-    const browserLangs=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||"en"];
-    const lang=urlLang?normalizeLocale(urlLang):normalizeLocale(browserLangs[0]);
-    document.documentElement.lang=lang;
-    window.__LANG__=lang;
+  /** ====== 설정 ====== */
+  // 1) CSV 경로
+  const DATA_URL = "/data/emoji_public.csv";
 
-    /* ---------- 2) 구글시트 CSV 주소 ---------- */
-    const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1007324268&single=true&output=csv";
+  // 2) 카드에 보여줄 이름 우선순위(앞에서부터 우선)
+  const NAME_FIELDS = ["name_ko","name_ja","name_zh-CN","name_en"];
 
-    /* ---------- 3) CSV 파서 ---------- */
-    function parseCSV(text){
-      const rows=[]; let cur=[],val="",inQ=false;
-      for(let i=0;i<text.length;i++){
-        const c=text[i], n=text[i+1];
-        if(c==='\"'){ if(inQ&&n==='\"'){ val+='\"'; i++; } else inQ=!inQ; }
-        else if(c===','&&!inQ){ cur.push(val); val=""; }
-        else if((c==='\n'||c==='\r')&&!inQ){ if(val!==""||cur.length){ cur.push(val); rows.push(cur); cur=[]; val=""; } if(c==='\r'&&n==='\n') i++; }
-        else{ val+=c; }
-      }
-      if(val!==""||cur.length){ cur.push(val); rows.push(cur); }
-      return rows;
-    }
-    function csvToObjects(text){
-      const arr=parseCSV(text).filter(r=>r.length&&r.some(x=>x!==""));
-      const headers=arr[0].map(h=>h.trim());
-      return arr.slice(1).map(cols=>{
-        const o={}; headers.forEach((h,i)=>o[h]=(cols[i]||"").trim()); return o;
+  // 3) SAFE 인덱스에 포함할 필드(밈/ALL 금지)
+  const SAFE_FIELDS = [
+    "keywords_ko_safe","keywords_ja_safe","keywords_zh-CN_safe",
+    "keywords_es_safe","keywords_pt_safe","keywords_fr_safe",
+    "keywords_tr_safe","keywords_id_safe","keywords_ru_safe","keywords_ar_safe",
+    "name_en" // 라틴 검색 보조용
+  ];
+
+  // 4) 검색/정렬 파라미터
+  const MAX_RESULTS = 400;            // 최대 노출
+  const SCORE = { nameHit: 3, tokenHit: 1, categoryHit: 0.5 }; // 가중치
+
+  /** ====== 유틸 ====== */
+  const rmDiacritics = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const toLower = s => rmDiacritics(String(s||"")).toLowerCase();
+  const splitLatin = s => toLower(s).split(/[^a-z0-9]+/).filter(t=>t.length>1);
+  const uniq = arr => [...new Set(arr)];
+  const hasCJK = s => /[\uac00-\ud7a3\u3040-\u30ff\u4e00-\u9fff]/.test(s);
+
+  /** ====== 데이터 로드 ====== */
+  let rows = [];
+  let ready = false;
+
+  Papa.parse(DATA_URL, {
+    download:true, header:true, skipEmptyLines:true,
+    complete: (res) => {
+      rows = res.data.map(r => {
+        // 표시 이름 결정
+        const name = NAME_FIELDS.map(f=>r[f]).find(Boolean) || r.name_en || "";
+        // SAFE 인덱스(문자열+라틴 토큰)
+        const safeStrings = SAFE_FIELDS.map(f => r[f]||"").join(",");
+        const idxStr = toLower(safeStrings);
+        const idxCJK = idxStr;               // CJK는 문자열 포함 검사
+        const idxLatinTokens = uniq(splitLatin(idxStr)); // 라틴은 토큰 배열
+        return {
+          id: r.id, category: r.category||"", code: r.code||"", emoji: r.emoji||"",
+          // 표시
+          name, name_en: r.name_en||"",
+          // 검색 인덱스
+          idxCJK, idxLatinTokens,
+          // 하이라이트를 위한 원본 SAFE(대표 한 언어만 보여줄 때는 교체 가능)
+          safeKo: r.keywords_ko_safe || ""
+        };
       });
+      ready = true;
+      render(rows.slice(0, 120));
     }
+  });
 
-    /* ---------- 4) 헬퍼들 ---------- */
-    function codeToEmoji(code){
-      const hex=(code||"").replace(/U\+/i,"").trim();
-      return hex ? String.fromCodePoint(parseInt(hex,16)) : "";
+  /** ====== 검색 ====== */
+  const $q = document.getElementById("q");
+  const $list = document.getElementById("list");
+  const $zero = document.getElementById("zero");
+  let t;
+
+  $q.addEventListener("input", () => {
+    clearTimeout(t);
+    t = setTimeout(runSearch, 60);
+  });
+
+  function runSearch(){
+    if(!ready){ return; }
+    const qRaw = $q.value || "";
+    const q = toLower(qRaw.trim());
+    if(!q){
+      render(rows.slice(0, 120));
+      return;
     }
-    function getEmojiName(row){
-      const lang=window.__LANG__;
-      const prefs=[];
-      prefs.push(`Name_${lang}`);
-      if(lang==="zh") prefs.push("Name_zh","Name_zh-CN","Name_zh-TW","Name_zh_Hans","Name_zh_Hant");
-      if(lang==="zh-CN") prefs.push("Name_zh-CN","Name_zh");
-      if(lang==="zh-TW") prefs.push("Name_zh-TW","Name_zh");
-      prefs.push("Name_ko","Name_en");
-      for(const k of prefs){ if(k in row && row[k]) return row[k]; }
-      return row["Name"] || "";
-    }
-    function allNamesLower(row){
-      const parts=[];
-      for(const k in row){
-        if(/^Name($|_)/i.test(k) && row[k]) parts.push(String(row[k]).toLowerCase());
+    const cjk = hasCJK(q);
+    const hits = [];
+
+    // 질의 전처리
+    const chars = cjk ? uniq(q.split("").filter(Boolean)) : [];
+    const tokens = cjk ? [] : uniq(q.split(/[\s,]+/).map(toLower).filter(Boolean));
+
+    for(const r of rows){
+      let score = 0;
+      let matched = false;
+
+      if(cjk){
+        // 문자 1개라도 포함되면 매칭
+        for(const ch of chars){
+          if(r.idxCJK.includes(ch)){
+            matched = true;
+            score += SCORE.tokenHit;
+          }
+        }
+        // 이름에 포함되면 가중치 추가
+        for(const ch of chars){
+          if(toLower(r.name).includes(ch)) score += SCORE.nameHit;
+        }
+      }else{
+        // 라틴: 토큰(부분문자열) OR
+        for(const t of tokens){
+          if(r.idxLatinTokens.includes(t) || toLower(r.name_en).includes(t) || toLower(r.name).includes(t)){
+            matched = true;
+            score += SCORE.tokenHit;
+            if(toLower(r.name).includes(t)) score += SCORE.nameHit;
+          }
+        }
       }
-      if(row.Category) parts.push(String(row.Category).toLowerCase());
-      return parts.join(" | ");
-    }
-    function toast(msg="📋 복사되었습니다"){
-      const t=document.getElementById("toast");
-      t.textContent=msg; t.classList.add("show");
-      setTimeout(()=>t.classList.remove("show"),1400);
-    }
-    function cardHTML(r){
-      const emoji=codeToEmoji(r.Code || r.code || r.CODE);
-      const name=getEmojiName(r);
-      const copy=emoji.replace(/'/g,"\\'");
-      return `
-        <div class="card" onclick="navigator.clipboard.writeText('${copy}').then(()=>toast('복사됨: ${copy}'))" title="${name}">
-          <div class="emoji">${emoji}</div>
-          <div class="name">${name}</div>
-        </div>`;
-    }
 
-    /* ---------- 5) 렌더링 ---------- */
-    function renderFlat(data){ // 검색 모드
-      document.getElementById("sections").innerHTML = "";
-      document.getElementById("grid").innerHTML = data.map(cardHTML).join("") || `<div style="color:#666;">검색 결과가 없습니다.</div>`;
-    }
+      // 카테고리 보너스(원하면 키워드화)
+      for(const key of (cjk ? chars : tokens)){
+        if(toLower(r.category).includes(key)) score += SCORE.categoryHit;
+      }
 
-    // ✅ 더보기 없이 전부 표시 / 간격 0 / 카드 테두리 제거 반영
-    function renderGrouped(data, onlyCategory="__ALL__"){
-      const byCat = {};
-      data.forEach(r=>{
-        const c = r.Category && r.Category.trim() ? r.Category.trim() : "(Uncategorized)";
-        if(!byCat[c]) byCat[c]=[];
-        byCat[c].push(r);
-      });
-      const cats = Object.keys(byCat).sort((a,b)=>a.localeCompare(b));
-
-      let html = "";
-      cats.forEach(cat=>{
-        if(onlyCategory!=="__ALL__" && cat!==onlyCategory) return;
-        const rows = byCat[cat];
-        html += `
-          <section class="section" data-cat="${cat}">
-            <h2>${cat} <span style="color:#999;font-weight:400">(${rows.length})</span></h2>
-            <div class="cat-grid">${rows.map(cardHTML).join("")}</div>
-          </section>
-        `;
-      });
-
-      document.getElementById("sections").innerHTML = html || `<div style="color:#666;margin-top:12px;">표시할 카테고리가 없습니다.</div>`;
-      document.getElementById("grid").innerHTML = "";
-    }
-
-    /* ---------- 6) 메인 로직 ---------- */
-    let ROWS=[];
-    const $q = document.getElementById("q");
-    const $cat = document.getElementById("cat");
-
-    $q.addEventListener("input", applyView);
-    $cat.addEventListener("change", applyView);
-
-    function applyView(){
-      const q = $q.value.trim().toLowerCase();
-      const catVal = $cat.value;
-
-      if(q){ // 검색 모드
-        let filtered = ROWS.filter(r=>{
-          const curName=(getEmojiName(r)||"").toLowerCase();
-          const allNames=allNamesLower(r);
-          const catOk = (catVal==="__ALL__") ? true : (String(r.Category||"").trim()===catVal);
-          return catOk && (curName.includes(q) || allNames.includes(q));
-        });
-        filtered.sort((a,b)=>{
-          const aCur=(getEmojiName(a)||"").toLowerCase();
-          const bCur=(getEmojiName(b)||"").toLowerCase();
-          const aMatch=aCur.includes(q);
-          const bMatch=bCur.includes(q);
-          if(aMatch && !bMatch) return -1;
-          if(!aMatch && bMatch) return 1;
-          return 0;
-        });
-        renderFlat(filtered);
-      } else { // 그룹 모드
-        const data = (catVal==="__ALL__") ? ROWS : ROWS.filter(r => String(r.Category||"").trim()===catVal);
-        renderGrouped(data, catVal);
+      if(matched){
+        hits.push({r, score});
       }
     }
 
-    async function load(){
-      try{
-        const res=await fetch(DATA_URL);
-        if(!res.ok) throw new Error("CSV 불러오기 실패: "+res.status);
-        const text=await res.text();
-        ROWS=csvToObjects(text);
+    // 점수 정렬 → 상위만 노출
+    hits.sort((a,b)=> b.score - a.score);
+    render(hits.slice(0, MAX_RESULTS).map(x=>x.r));
+  }
 
-        // 드롭다운 채우기
-        const cats = Array.from(new Set(ROWS.map(r => (r.Category||"").trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
-        const opts = ['<option value="__ALL__">전체 카테고리</option>'].concat(cats.map(c=>`<option value="${c}">${c}</option>`));
-        document.getElementById("cat").innerHTML = opts.join("");
+  /** ====== 렌더 & 하이라이트 ====== */
+  function esc(s){return (s||"").replace(/[&<>"]/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
 
-        applyView(); // 첫 렌더
-      }catch(e){
-        console.error(e);
-        const err=document.getElementById("error");
-        err.style.display="block";
-        err.innerHTML="데이터를 불러오지 못했습니다. <br>1) 스프레드시트 ‘파일 → 웹에 게시(CSV)’인지 확인 <br>2) DATA_URL 주소 확인 <br>3) 첫 행 헤더가 Code, Category, Name_en, Name_ko, ... 인지 확인";
+  function highlight(text, query){
+    if(!query) return esc(text);
+    const q = toLower(query);
+    if(hasCJK(q)){
+      // 문자 집합으로 하이라이트
+      const set = new Set(q.split(""));
+      let out = "";
+      for(const ch of text){
+        if(set.has(toLower(ch))) out += "<mark>"+esc(ch)+"</mark>";
+        else out += esc(ch);
       }
+      return out;
+    }else{
+      // 라틴: 토큰 OR
+      const tokens = uniq(q.split(/[\s,]+/).filter(Boolean)).sort((a,b)=>b.length-a.length);
+      let html = esc(text);
+      for(const t of tokens){
+        if(!t) continue;
+        const re = new RegExp("("+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig");
+        html = html.replace(re, "<mark>$1</mark>");
+      }
+      return html;
     }
-    load();
+  }
+
+  function render(items){
+    if(!items.length){
+      $list.innerHTML = "";
+      $zero.style.display = "block";
+      return;
+    }
+    $zero.style.display = "none";
+    const q = $q.value || "";
+    $list.innerHTML = items.map(r => `
+      <div class="card">
+        <div class="emoji">${r.emoji || "⬜"}</div>
+        <div class="name">${highlight(r.name, q)}</div>
+        <div class="meta">${esc(r.category)} · ${esc(r.code)}</div>
+        ${r.safeKo ? `<div class="meta">${highlight(r.safeKo, q)}</div>` : ""}
+      </div>
+    `).join("");
+  }
   </script>
 </body>
 </html>
