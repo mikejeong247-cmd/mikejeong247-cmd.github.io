@@ -5,20 +5,27 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Emoji Search — Pro (FAST On-Demand)</title>
 
-  <!-- 네트워크 핸드셰이크 단축 -->
-  <link rel="dns-prefetch" href="https://docs.google.com">
-  <link rel="preconnect" href="https://docs.google.com" crossorigin>
+  <!-- HTTP/2 커넥션 재사용: 모든 에셋을 jsDelivr 1도메인으로 통일 -->
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="dns-prefetch" href="https://docs.google.com">
+  <link rel="preconnect" href="https://docs.google.com" crossorigin>
 
   <style>
     :root{
-      /* ===== 속도 스위치: 숫자만 조정 ===== */
+      /* ===== 속도 스위치 ===== */
       --search-h:44px;
+
+      /* Q3 반응형: 고정폭 대신 max-width 사용 (권장 600px) */
       --grid-width:600px;
+
+      /* 더 빠르게 하고 싶으면 560px/520px로 줄이면 첫 화면 타일 수가 줄어 페인트가 가벼워짐 */
+      /* 예: --grid-width:560px; */
+
       --cols:30;           /* 27→30 */
       --emoji-size:13px;   /* 15→13 */
       --grid-gap:1px;      /* 2→1 */
+
       --cat-gap-between:80px;
       --cat-to-grid-gap:16px;
     }
@@ -37,10 +44,15 @@
     .sec{margin:0 0 var(--cat-gap-between);contain-intrinsic-size:1000px}
     .cat{font-weight:700;font-size:18px;margin:6px 0 var(--cat-to-grid-gap);display:flex;align-items:center;gap:6px;justify-content:center}
     .cnt{color:#999;font-weight:400;font-size:12px}
-    .lazy{content-visibility:auto} /* 온디맨드 */
+    .lazy{content-visibility:auto} /* 온디맨드 섹션 */
 
-    .emojis{width:var(--grid-width);margin:0 auto;display:grid;
-      grid-template-columns:repeat(var(--cols),1fr);justify-items:start;align-items:center;gap:var(--grid-gap)}
+    .emojis{
+      /* Q3 반영: 반응형 */
+      max-width: var(--grid-width);
+      width: 100%;
+      margin:0 auto;display:grid;
+      grid-template-columns:repeat(var(--cols),1fr);justify-items:start;align-items:center;gap:var(--grid-gap)
+    }
 
     .e{width:var(--emoji-size);height:var(--emoji-size);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none}
     .glyph{display:inline-block;width:var(--emoji-size);height:var(--emoji-size);
@@ -73,10 +85,8 @@
 
   <footer>
     Emoji graphics via
-    <a href="https://github.com/twitter/twemoji">Twemoji</a>,
-    <a href="https://openmoji.org">OpenMoji</a>,
-    <a href="https://github.com/googlefonts/noto-emoji">Noto Emoji</a>.
-    Licenses: CC BY 4.0 / CC BY-SA 4.0 / OFL 1.1.
+    <a href="https://github.com/twitter/twemoji">Twemoji</a> &
+    <a href="https://openmoji.org">OpenMoji</a>. Licenses: CC BY 4.0 / CC BY-SA 4.0.
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -87,7 +97,7 @@
   const NAME_FIELDS_BASE = ["name_ko","name_ja","name_zh-cn","name_en","name_es","name_ar","name_pt","name_ru","name_fr","name_tr","name_id","name_hi","name_de"];
   const SAFE_FIELDS_BASE = ["keywords_ko_safe","keywords_ja_safe","keywords_zh-cn_safe","keywords_es_safe","keywords_ar_safe","keywords_pt_safe","keywords_ru_safe","keywords_fr_safe","keywords_tr_safe","keywords_id_safe","keywords_hi_safe","keywords_de_safe"];
 
-  const MAX_RESULTS = Infinity;
+  const MAX_RESULTS = Infinity;             // 필요시 800/1200 등으로 제한하면 더 가벼움
   const SCORE = { nameHit:3, tokenHit:1, categoryHit:0.5 };
   const MIN_LATIN_TOKEN_LEN = 3;
 
@@ -101,7 +111,7 @@
   if(/^(ar|fa|ur|he)(-|$)/i.test(rawLang)) document.documentElement.setAttribute('dir','rtl');
   const LC = rawLang.startsWith("zh") ? (rawLang.includes("tw")||rawLang.includes("hk")?"zh-tw":"zh-cn") : rawLang.split("-")[0];
   const I18N_TEXT={placeholder:{"ko":"검색","ja":"検索","zh-cn":"搜索","zh-tw":"搜尋","en":"Search","es":"Buscar","ar":"بحث","pt":"Pesquisar","ru":"Поиск","fr":"Rechercher","tr":"Ara","id":"Cari","hi":"खोजें","de":"Suchen"},
-                   copyHint:{"ko":"이모지를 누르면 복사됩니다","ja":"絵文字をクリックするとコピーされます","zh-cn":"点击表情即可复制","zh-tw":"點擊表情即可複製","en":"Click emoji to copy","es":"Haz clic en un emoji para copiarlo","ar":"انقر على الإيموجी للنسخ","pt":"Clique no emoji para copiar","ru":"Нажмите на эмодзи, чтобы скопировать","fr":"Cliquez sur un emoji pour copier","tr":"Emojiyi kopyalamak için tıklayın","id":"Klik emoji untuk menyalin","hi":"इमोजी पर 클릭 करें, कॉपी हो जाएगा","de":"Emoji anklicken zum Kopieren"}};
+                   copyHint:{"ko":"이모지를 누르면 복사됩니다","ja":"絵文字をクリックするとコピーされます","zh-cn":"点击表情即可复制","zh-tw":"點擊表情即可複製","en":"Click emoji to copy","es":"Haz clic en un emoji para copiarlo","ar":"انقر على الإيموجी للنسخ","pt":"Clique no emoji para copiar","ru":"Нажмите на эмодзи, чтобы скопировать","fr":"Cliquez sur un emoji pour copier","tr":"Emojiyi kopyalamak için tıklayın","id":"Klik emoji untuk menyalin","hi":"इमोजी पर क्लिक करें, कॉपी हो जाएगा","de":"Emoji anklicken zum Kopieren"}};
   (function(){document.getElementById('q').placeholder=(I18N_TEXT.placeholder[LC]||I18N_TEXT.placeholder.en)+'…'; document.getElementById('copyhint').textContent=I18N_TEXT.copyHint[LC]||I18N_TEXT.copyHint.en;})();
 
   /* ===== 2) 유틸 ===== */
@@ -113,77 +123,83 @@
   const esc=s=>(s||"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
   const rIC=window.requestIdleCallback ? (cb)=>window.requestIdleCallback(cb,{timeout:IDLE_TIMEOUT}) : (cb)=>setTimeout(cb,0);
 
-  /* ===== 3) 멀티 CDN 폴백 + 스프라이트 자동 ===== */
-  // 스프라이트 자동 감지(있으면 우선 적용)
-  let RENDERER_MODE='sprite';
-  const SPRITE_CDN_BASE='/sprites';
-  let SPRITE_MAP=null;
-  (async function(){try{
-    const res=await fetch(`${SPRITE_CDN_BASE}/SPRITE_MAP.json?ts=${Date.now()}`,{cache:'no-cache'});
-    if(res.ok){SPRITE_MAP=await res.json(); RENDERER_MODE='sprite';} else {RENDERER_MODE='cdn';}
-  }catch(e){RENDERER_MODE='cdn';}})();
+  /* ===== 3) 스프라이트 + 사전지원목록(404 제거) + PNG 전용 ===== */
+  const CDN = 'https://cdn.jsdelivr.net';
+  const TW_PNG = (seq) => `${CDN}/gh/twitter/twemoji@14/assets/72x72/${seq}.png`;
+  const OM_PNG = (seq) => `${CDN}/npm/openmoji@14.0.0/color/72x72/${seq.toUpperCase()}.png`;
 
-  const TWEMOJI_BASE='https://cdn.jsdelivr.net/gh/twitter/twemoji@14/assets';
-  const OPENMOJI_BASE='https://cdn.jsdelivr.net/npm/openmoji@14.0.0/color/svg';
-  const NOTO_BASE    ='https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji/svg';
+  let SPRITE_MAP=null, SUPPORT_HINTS=null; // {twemoji:Set([...]), openmoji:Set([...])}
+  let RENDERER_MODE='cdn';
+
+  async function ensureHints(){
+    try{
+      const [mapRes,hintRes] = await Promise.all([
+        fetch(`/sprites/SPRITE_MAP.json?ts=${Date.now()}`, {cache:'no-cache'}),
+        fetch(`/sprites/SUPPORT_HINTS.json?ts=${Date.now()}`, {cache:'no-cache'})
+      ]);
+      if(mapRes.ok){ SPRITE_MAP = await mapRes.json(); RENDERER_MODE='sprite'; }
+      if(hintRes.ok){
+        const j = await hintRes.json();
+        SUPPORT_HINTS = {
+          twemoji: new Set((j.twemoji||[]).map(s=>s.toLowerCase())),
+          openmoji: new Set((j.openmoji||[]).map(s=>s.toLowerCase()))
+        };
+      }
+    }catch(e){}
+  }
 
   function normalizeSeq(code, emojiText){
     let s=(code||'').toLowerCase().trim();
     s=s.replace(/^[a-z]+\s+/,'').replace(/u\+/g,'').replace(/[_\s]+/g,'-');
     if(!/^[0-9a-f]+(-[0-9a-f]+)*$/.test(s) || !s){
-      if(emojiText){const cps=[]; for(const ch of emojiText) cps.push(ch.codePointAt(0).toString(16)); s=cps.join('-');}
+      if(emojiText){const cps=[];for(const ch of emojiText)cps.push(ch.codePointAt(0).toString(16)); s=cps.join('-');}
       else s='';
     }
-    return s;
+    // FE0F 변형 제거/유지 중 “제거”만 사용(지원목록과 일관성)
+    return s.split('-').filter(p=>p!=='fe0f').join('-');
   }
-  function withVariants(seq){
-    const parts=seq.split('-').filter(Boolean);
-    const noVS=parts.filter(p=>p!=='fe0f').join('-');
-    const withVS=parts.join('-');
-    return [...new Set([withVS,noVS])];
+
+  function paintFromPNG(el, provider, seq){
+    const url = provider==='twemoji' ? TW_PNG(seq) : OM_PNG(seq);
+    const img=new Image(); img.decoding='async';
+    img.onload=()=>{ el.textContent=''; el.style.backgroundImage=`url(${url})`; el.style.backgroundSize='contain'; el.style.backgroundRepeat='no-repeat'; el.style.backgroundPosition='center'; el.style.display='inline-block'; };
+    img.onerror=()=>{ el.textContent = el.dataset.emoji || '⬜'; el.style.backgroundImage=''; };
+    img.src=url;
   }
-  function getEmojiUrls(code, emojiText){
-    const seqs=withVariants(normalizeSeq(code,emojiText));
-    const urls=[];
-    // Twemoji
-    for(const s of seqs) urls.push(`${TWEMOJI_BASE}/svg/${s}.svg`);
-    // OpenMoji (UPPER)
-    for(const s of seqs) urls.push(`${OPENMOJI_BASE}/${s.toUpperCase()}.svg`);
-    // Noto (emoji_uXXXX[-XXXX].svg)
-    for(const s of seqs){
-      const u='emoji_u'+s.replace(/\b([0-9a-f]{1,6})\b/g,'u$1').replace(/-u/g,'-');
-      urls.push(`${NOTO_BASE}/${u}.svg`);
-    }
-    return urls;
-  }
+
   function paintGlyphEl(el, code, emojiText){
-    const seq=normalizeSeq(code,emojiText);
-    // 스프라이트 우선
-    if(RENDERER_MODE==='sprite' && SPRITE_MAP && SPRITE_MAP[seq]){
+    const seq = normalizeSeq(code, emojiText);
+    // 1) 스프라이트 우선
+    if(SPRITE_MAP && SPRITE_MAP[seq]){
       const m=SPRITE_MAP[seq]; el.textContent='';
-      el.style.backgroundImage=`url(${SPRITE_CDN_BASE}/${m.sheet})`;
+      el.style.backgroundImage=`url(/sprites/${m.sheet})`;
       el.style.backgroundPosition=`-${m.x}px -${m.y}px`;
-      el.style.backgroundSize='auto'; el.style.backgroundRepeat='no-repeat'; el.style.display='inline-block';
+      el.style.backgroundSize='auto';
+      el.style.backgroundRepeat='no-repeat';
+      el.style.display='inline-block';
       return;
     }
-    // 멀티 CDN 폴백
-    const candidates=getEmojiUrls(seq,emojiText); let i=0;
-    const tryNext=()=>{
-      const url=candidates[i++]; if(!url){ el.textContent=emojiText||'⬜'; el.style.backgroundImage=''; return; }
-      const img=new Image(); img.decoding='async';
-      img.onload=()=>{ el.textContent=''; el.style.backgroundImage=`url(${url})`; el.style.backgroundSize='contain'; el.style.backgroundRepeat='no-repeat'; el.style.backgroundPosition='center'; el.style.display='inline-block'; };
-      img.onerror=tryNext; img.src=url;
-    };
-    tryNext();
+    // 2) 사전지원목록 기반 단일 PNG 요청 (404 없음)
+    if(SUPPORT_HINTS){
+      if(SUPPORT_HINTS.twemoji.has(seq)) return paintFromPNG(el,'twemoji',seq);
+      if(SUPPORT_HINTS.openmoji.has(seq)) return paintFromPNG(el,'openmoji',seq);
+      // 목록에 없으면 요청 자체를 생략(속도 우선)
+      el.textContent = emojiText || '⬜'; el.style.backgroundImage=''; return;
+    }
+    // 3) 기본값(목록이 없는 경우): OpenMoji PNG 한 번만 시도(404 오버헤드 최소화)
+    return paintFromPNG(el, 'openmoji', seq);
   }
+
   function paintNewGlyphs(container){
     container.querySelectorAll('.e:not([data-painted])').forEach(tile=>{
-      paintGlyphEl(tile.querySelector('.glyph'), tile.getAttribute('data-code'), tile.getAttribute('data-emoji'));
+      const g = tile.querySelector('.glyph');
+      g.dataset.emoji = tile.getAttribute('data-emoji') || '';
+      paintGlyphEl(g, tile.getAttribute('data-code'), g.dataset.emoji);
       tile.setAttribute('data-painted','1');
     });
   }
 
-  /* ===== 4) 데이터 로드 & 인덱스 ===== */
+  /* ===== 4) 데이터 로드 & 인덱스 (CSV 워커 파싱) ===== */
   let rows=[], ready=false, charIndex={}, tokenIndex={};
 
   const workerSrc=`self.onmessage=e=>{const{type,data}=e.data||{};if(type!=="build")return;
@@ -192,18 +208,22 @@
       for(const tk of it.idxLatinTokens||[]){if(!tk)continue;(t[tk]||(t[tk]=[])).push(i);}}
     for(const k in c)c[k].sort((a,b)=>a-b);for(const k in t)t[k].sort((a,b)=>a-b);
     self.postMessage({type:"built",charIndex:c,tokenIndex:t});}`;
-  const worker=new Worker(URL.createObjectURL(new Blob([workerSrc],{type:"text/javascript"})));
-  worker.onmessage=(e)=>{if(e.data?.type==="built"){charIndex=e.data.charIndex||{};tokenIndex=e.data.tokenIndex||{};ready=true; renderLazyByCategory(rows); loading.style.display="none";}};
+  const idxWorker=new Worker(URL.createObjectURL(new Blob([workerSrc],{type:"text/javascript"})));
+  idxWorker.onmessage=(e)=>{if(e.data?.type==="built"){charIndex=e.data.charIndex||{};tokenIndex=e.data.tokenIndex||{};ready=true; renderLazyByCategory(rows); loading.style.display="none";}};
 
-  (async function load(){
+  (async function boot(){
     loading.style.display="block";
+    await ensureHints(); // 스프라이트/지원목록 먼저 로드
+
     const resp = await fetch(DATA_URL + (DATA_URL.includes('?')?'&':'?') + 't=' + Date.now(), {cache:'no-cache', mode:'cors'});
     if(!resp.ok){ loading.style.display="none"; zero.style.display="block"; zero.textContent="CSV 로드 실패: "+resp.status; console.error("CSV 실패", resp.status, DATA_URL); return; }
     const csv = await resp.text();
-    const parsed = Papa.parse(csv,{header:true,skipEmptyLines:true});
 
+    // CSV 파싱을 워커로
+    const parsed = await new Promise(resolve => Papa.parse(csv, { header:true, skipEmptyLines:true, worker:true, complete: resolve }));
+    const rowsRaw = parsed.data || [];
     const normRow = row => { const o={}; for(const k in row){ o[String(k||"").trim().toLowerCase()] = row[k]; } return o; };
-    const data = parsed.data.map(normRow);
+    const data = rowsRaw.map(normRow);
     if(!data.length){ loading.style.display="none"; zero.style.display="block"; zero.textContent="CSV가 비어있습니다."; return; }
 
     const headers = Object.keys(data[0]||{});
@@ -223,7 +243,7 @@
       return { id:r.id, category:r.category||"", code:(r.code||"").toLowerCase(), emoji:r.emoji||"", name, name_en:r["name_en"]||"", idxChars, idxLatinTokens, safeKo };
     });
 
-    worker.postMessage({type:"build", data:rows.map((r,i)=>({i,idxChars:r.idxChars,idxLatinTokens:r.idxLatinTokens}))});
+    idxWorker.postMessage({type:"build", data:rows.map((r,i)=>({i,idxChars:r.idxChars,idxLatinTokens:r.idxLatinTokens}))});
   })();
 
   /* ===== 5) 검색 ===== */
@@ -271,12 +291,10 @@
   const observers=[];
 
   function renderLazyByCategory(items){
-    // 기존 옵저버 모두 해제
     observers.forEach(o=>o.disconnect()); observers.length=0;
     $list.innerHTML=""; $zero.style.display="none";
     const groups=Array.from(groupBy(items,r=>r.category).entries());
 
-    // 섹션 프레임만 만들고, 첫 N개는 즉시 렌더
     groups.forEach(([cat,arr],idx)=>{
       const sec=document.createElement("section"); sec.className="sec lazy";
       sec.innerHTML=`<div class="cat">${esc(cat)} <span class="cnt">${arr.length}</span></div><div class="emojis"></div>`;
@@ -347,7 +365,7 @@
     const emoji=tile.getAttribute("data-emoji")||"", code=tile.getAttribute("data-code")||"";
     try{ await navigator.clipboard.writeText(emoji||''); }catch(e){}
     const chip=document.createElement("span"); chip.className="copyglyph";
-    // 동일 폴백 로직으로 칠한다(배경)
+    // 같은 로직으로 칠함
     paintGlyphEl(chip, code, emoji);
     copybar.appendChild(chip);
   });
