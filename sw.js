@@ -1,6 +1,6 @@
-// sw.js — 같은 출처 정적만 캐시. HTML은 네트워크 우선(최신 코드 즉시 반영).
-const CACHE = 'emoji-v9';
-const PRECACHE = []; // 필요시 같은 출처 정적 자산 추가
+// sw.js v10 — HTML: 네트워크 우선(최신 유지), 같은 출처 정적: 캐시 퍼스트
+const CACHE = 'emoji-v10';
+const PRECACHE = []; // 필요시 같은 출처 정적 경로를 넣어 선캐시
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -18,16 +18,16 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
   const sameOrigin = url.origin === location.origin;
-
-  // 1) HTML: 네트워크 우선(오프라인시 캐시 폴백)
   const accepts = req.headers.get('accept') || '';
   const isHTML = req.mode === 'navigate' || accepts.includes('text/html');
+
+  // 1) HTML은 네트워크 우선
   if (isHTML) {
     e.respondWith(fetch(req).catch(() => caches.match('/index.html')));
     return;
   }
 
-  // 2) 같은 출처 정적: 캐시 퍼스트
+  // 2) 같은 출처 정적은 캐시 퍼스트 (sprites/data 포함)
   if (sameOrigin && req.method === 'GET') {
     e.respondWith(
       caches.match(req).then(cached => cached || fetch(req).then(res => {
@@ -36,5 +36,5 @@ self.addEventListener('fetch', (e) => {
       }))
     );
   }
-  // 3) 교차 출처(구글시트/CDN)는 건드리지 않음
+  // 3) 교차 출처(구글시트/CDN)는 캐시 제어하지 않음
 });
