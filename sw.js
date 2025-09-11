@@ -1,5 +1,5 @@
-// sw.js — 같은 출처 정적만 캐시. HTML(문서)은 네트워크 우선으로 새 코드 즉시 반영.
-const CACHE = 'emoji-v8';
+// sw.js — 같은 출처 정적만 캐시. HTML은 네트워크 우선(최신 코드 즉시 반영).
+const CACHE = 'emoji-v9';
 const PRECACHE = []; // 필요시 같은 출처 정적 자산 추가
 
 self.addEventListener('install', (e) => {
@@ -36,5 +36,5 @@ self.addEventListener('fetch', (e) => {
       }))
     );
   }
-  // 3) 교차 출처(구글시트/CDN/광고)는 SW에서 건드리지 않음
+  // 3) 교차 출처(구글시트/CDN)는 건드리지 않음
 });
