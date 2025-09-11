@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Emoji Search — Pro (FAST On-Demand)</title>
 
-  <!-- HTTP/2 커넥션 재사용: 모든 에셋을 jsDelivr 1도메인으로 통일 -->
+  <!-- HTTP/2/3 재사용: jsDelivr 단일 도메인, Google Sheets 사전연결 (CSV 폴백용) -->
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="dns-prefetch" href="https://docs.google.com">
@@ -13,19 +13,12 @@
 
   <style>
     :root{
-      /* ===== 속도 스위치 ===== */
+      /* ✅ Q2 반영: 첫 화면 더 가볍게 (560px 권장) */
+      --grid-width:560px;     /* 600 → 560 */
+      --cols:30;
+      --emoji-size:13px;
+      --grid-gap:1px;
       --search-h:44px;
-
-      /* Q3 반응형: 고정폭 대신 max-width 사용 (권장 600px) */
-      --grid-width:600px;
-
-      /* 더 빠르게 하고 싶으면 560px/520px로 줄이면 첫 화면 타일 수가 줄어 페인트가 가벼워짐 */
-      /* 예: --grid-width:560px; */
-
-      --cols:30;           /* 27→30 */
-      --emoji-size:13px;   /* 15→13 */
-      --grid-gap:1px;      /* 2→1 */
-
       --cat-gap-between:80px;
       --cat-to-grid-gap:16px;
     }
@@ -47,8 +40,7 @@
     .lazy{content-visibility:auto} /* 온디맨드 섹션 */
 
     .emojis{
-      /* Q3 반영: 반응형 */
-      max-width: var(--grid-width);
+      max-width: var(--grid-width);  /* ✅ 반응형 */
       width: 100%;
       margin:0 auto;display:grid;
       grid-template-columns:repeat(var(--cols),1fr);justify-items:start;align-items:center;gap:var(--grid-gap)
@@ -92,27 +84,30 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
   /* ===== 0) 설정 ===== */
+  // CSV 폴백용 (스냅샷 없을 때만 사용)
   const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1543598799&single=true&output=csv";
+  // 스냅샷: GitHub Actions가 생성하는 /data/build.json (있으면 이것만 사용)
+  const SNAPSHOT_URL = "/data/build.json";
 
   const NAME_FIELDS_BASE = ["name_ko","name_ja","name_zh-cn","name_en","name_es","name_ar","name_pt","name_ru","name_fr","name_tr","name_id","name_hi","name_de"];
   const SAFE_FIELDS_BASE = ["keywords_ko_safe","keywords_ja_safe","keywords_zh-cn_safe","keywords_es_safe","keywords_ar_safe","keywords_pt_safe","keywords_ru_safe","keywords_fr_safe","keywords_tr_safe","keywords_id_safe","keywords_hi_safe","keywords_de_safe"];
 
-  const MAX_RESULTS = Infinity;             // 필요시 800/1200 등으로 제한하면 더 가벼움
+  const MAX_RESULTS = 800;                  // 검색 결과 상한 (DOM/페인트 부하 보호)
   const SCORE = { nameHit:3, tokenHit:1, categoryHit:0.5 };
   const MIN_LATIN_TOKEN_LEN = 3;
 
-  /* 속도 스위치 */
-  const ABOVE_FOLD_CATS = 2;   // 첫 2개 섹션 즉시 렌더
-  const EMOJI_CHUNK     = 360; // 타일 분할 단위
-  const IDLE_TIMEOUT    = 60;  // requestIdleCallback timeout(ms)
+  // 렌더 스위치
+  const ABOVE_FOLD_CATS = 2;                // 첫 2섹션 즉시
+  const EMOJI_CHUNK     = 360;              // 타일 청크
+  const IDLE_TIMEOUT    = 60;               // rIC timeout(ms)
 
   /* ===== 1) i18n & RTL ===== */
   const rawLang=(navigator.language||"en").toLowerCase();
   if(/^(ar|fa|ur|he)(-|$)/i.test(rawLang)) document.documentElement.setAttribute('dir','rtl');
   const LC = rawLang.startsWith("zh") ? (rawLang.includes("tw")||rawLang.includes("hk")?"zh-tw":"zh-cn") : rawLang.split("-")[0];
-  const I18N_TEXT={placeholder:{"ko":"검색","ja":"検索","zh-cn":"搜索","zh-tw":"搜尋","en":"Search","es":"Buscar","ar":"بحث","pt":"Pesquisar","ru":"Поиск","fr":"Rechercher","tr":"Ara","id":"Cari","hi":"खोजें","de":"Suchen"},
-                   copyHint:{"ko":"이모지를 누르면 복사됩니다","ja":"絵文字をクリックするとコピーされます","zh-cn":"点击表情即可复制","zh-tw":"點擊表情即可複製","en":"Click emoji to copy","es":"Haz clic en un emoji para copiarlo","ar":"انقر على الإيموجी للنسخ","pt":"Clique no emoji para copiar","ru":"Нажмите на эмодзи, чтобы скопировать","fr":"Cliquez sur un emoji pour copier","tr":"Emojiyi kopyalamak için tıklayın","id":"Klik emoji untuk menyalin","hi":"इमोजी पर क्लिक करें, कॉपी हो जाएगा","de":"Emoji anklicken zum Kopieren"}};
-  (function(){document.getElementById('q').placeholder=(I18N_TEXT.placeholder[LC]||I18N_TEXT.placeholder.en)+'…'; document.getElementById('copyhint').textContent=I18N_TEXT.copyHint[LC]||I18N_TEXT.copyHint.en;})();
+  const I18N_TEXT={placeholder:{"ko":"검색","ja":"検索","zh-cn":"搜索","zh-tw":"搜尋","en":"Search","es":"Buscar","ar":"بحث","pt":"Pesquisar","ru":"Поиск","fr":"Rechercher","tr":"Ara","id":"Cari","hi":"इमोजी खोजें","de":"Suchen"},
+                   copyHint:{"ko":"이모지를 누르면 복사됩니다","ja":"絵文字をクリックするとコピーされます","zh-cn":"点击表情即可复制","zh-tw":"點擊表情即可複製","en":"Click emoji to copy","es":"Haz clic en un emoji para copiarlo","ar":"انقر على الإيموجي للنسخ","pt":"Clique no emoji para copiar","ru":"Нажмите на эмодзи, чтобы скопировать","fr":"Cliquez sur un emoji pour copier","tr":"Emojiyi kopyalamak için tıklayın","id":"Klik emoji untuk menyalin","hi":"इमोजी पर क्लिक करें","de":"Emoji anklicken zum Kopieren"}};
+  (function(){q.placeholder=(I18N_TEXT.placeholder[LC]||I18N_TEXT.placeholder.en)+'…'; copyhint.textContent=I18N_TEXT.copyHint[LC]||I18N_TEXT.copyHint.en;})();
 
   /* ===== 2) 유틸 ===== */
   const rmDiacritics=s=>(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
@@ -121,31 +116,41 @@
   const uniq=arr=>[...new Set(arr)];
   const isLatin=s=>/^[a-z0-9\s,._-]+$/i.test(rmDiacritics(s||""));
   const esc=s=>(s||"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
-  const rIC=window.requestIdleCallback ? (cb)=>window.requestIdleCallback(cb,{timeout:IDLE_TIMEOUT}) : (cb)=>setTimeout(cb,0);
+  const rIC=window.requestIdleCallback?(cb)=>window.requestIdleCallback(cb,{timeout:IDLE_TIMEOUT}):(cb)=>setTimeout(cb,0);
 
-  /* ===== 3) 스프라이트 + 사전지원목록(404 제거) + PNG 전용 ===== */
-  const CDN = 'https://cdn.jsdelivr.net';
-  const TW_PNG = (seq) => `${CDN}/gh/twitter/twemoji@14/assets/72x72/${seq}.png`;
-  const OM_PNG = (seq) => `${CDN}/npm/openmoji@14.0.0/color/72x72/${seq.toUpperCase()}.png`;
+  /* ===== 3) 스프라이트 + 사전지원목록 + PNG 전용 ===== */
+  const CDN='https://cdn.jsdelivr.net';
+  const TW_PNG=(seq)=>`${CDN}/gh/twitter/twemoji@14/assets/72x72/${seq}.png`;
+  const OM_PNG=(seq)=>`${CDN}/npm/openmoji@14.0.0/color/72x72/${seq.toUpperCase()}.png`;
 
-  let SPRITE_MAP=null, SUPPORT_HINTS=null; // {twemoji:Set([...]), openmoji:Set([...])}
-  let RENDERER_MODE='cdn';
+  let SPRITE_MAP=null, SUPPORT_HINTS=null; // {twemoji:Set, openmoji:Set}
 
   async function ensureHints(){
     try{
-      const [mapRes,hintRes] = await Promise.all([
+      const [mapRes,hintRes] = await Promise.allSettled([
         fetch(`/sprites/SPRITE_MAP.json?ts=${Date.now()}`, {cache:'no-cache'}),
         fetch(`/sprites/SUPPORT_HINTS.json?ts=${Date.now()}`, {cache:'no-cache'})
       ]);
-      if(mapRes.ok){ SPRITE_MAP = await mapRes.json(); RENDERER_MODE='sprite'; }
-      if(hintRes.ok){
-        const j = await hintRes.json();
-        SUPPORT_HINTS = {
-          twemoji: new Set((j.twemoji||[]).map(s=>s.toLowerCase())),
-          openmoji: new Set((j.openmoji||[]).map(s=>s.toLowerCase()))
-        };
+      if(mapRes.status==='fulfilled' && mapRes.value.ok){
+        SPRITE_MAP = await mapRes.value.json();
+        // 발견된 시트들을 preload로 당겨 초기 페인트 가속
+        preloadSpriteSheets(Object.values(SPRITE_MAP).map(m=>m.sheet));
+      }
+      if(hintRes.status==='fulfilled' && hintRes.value.ok){
+        const j=await hintRes.value.json();
+        SUPPORT_HINTS={ twemoji:new Set((j.twemoji||[]).map(s=>s.toLowerCase())),
+                        openmoji:new Set((j.openmoji||[]).map(s=>s.toLowerCase())) };
       }
     }catch(e){}
+  }
+
+  function preloadSpriteSheets(sheets){
+    const uniqSheets=[...new Set(sheets||[])].slice(0,3); // 과도한 프리로드 방지
+    uniqSheets.forEach(s=>{
+      const link=document.createElement('link');
+      link.rel='preload'; link.as='image'; link.href=`/sprites/${s}`; link.fetchPriority='high';
+      document.head.appendChild(link);
+    });
   }
 
   function normalizeSeq(code, emojiText){
@@ -155,8 +160,7 @@
       if(emojiText){const cps=[];for(const ch of emojiText)cps.push(ch.codePointAt(0).toString(16)); s=cps.join('-');}
       else s='';
     }
-    // FE0F 변형 제거/유지 중 “제거”만 사용(지원목록과 일관성)
-    return s.split('-').filter(p=>p!=='fe0f').join('-');
+    return s.split('-').filter(p=>p!=='fe0f').join('-'); // FE0F 제거
   }
 
   function paintFromPNG(el, provider, seq){
@@ -168,10 +172,11 @@
   }
 
   function paintGlyphEl(el, code, emojiText){
-    const seq = normalizeSeq(code, emojiText);
-    // 1) 스프라이트 우선
+    const seq=normalizeSeq(code, emojiText);
+    // 1) 스프라이트
     if(SPRITE_MAP && SPRITE_MAP[seq]){
-      const m=SPRITE_MAP[seq]; el.textContent='';
+      const m=SPRITE_MAP[seq];
+      el.textContent='';
       el.style.backgroundImage=`url(/sprites/${m.sheet})`;
       el.style.backgroundPosition=`-${m.x}px -${m.y}px`;
       el.style.backgroundSize='auto';
@@ -179,56 +184,69 @@
       el.style.display='inline-block';
       return;
     }
-    // 2) 사전지원목록 기반 단일 PNG 요청 (404 없음)
+    // 2) 지원목록 기반 PNG 1회
     if(SUPPORT_HINTS){
       if(SUPPORT_HINTS.twemoji.has(seq)) return paintFromPNG(el,'twemoji',seq);
       if(SUPPORT_HINTS.openmoji.has(seq)) return paintFromPNG(el,'openmoji',seq);
-      // 목록에 없으면 요청 자체를 생략(속도 우선)
-      el.textContent = emojiText || '⬜'; el.style.backgroundImage=''; return;
+      el.textContent=emojiText||'⬜'; el.style.backgroundImage=''; return; // 요청 생략(속도 우선)
     }
-    // 3) 기본값(목록이 없는 경우): OpenMoji PNG 한 번만 시도(404 오버헤드 최소화)
-    return paintFromPNG(el, 'openmoji', seq);
+    // 3) 기본값: OpenMoji PNG 한 번만
+    return paintFromPNG(el,'openmoji',seq);
   }
 
   function paintNewGlyphs(container){
     container.querySelectorAll('.e:not([data-painted])').forEach(tile=>{
-      const g = tile.querySelector('.glyph');
-      g.dataset.emoji = tile.getAttribute('data-emoji') || '';
+      const g=tile.querySelector('.glyph');
+      g.dataset.emoji = tile.getAttribute('data-emoji')||'';
       paintGlyphEl(g, tile.getAttribute('data-code'), g.dataset.emoji);
       tile.setAttribute('data-painted','1');
     });
   }
 
-  /* ===== 4) 데이터 로드 & 인덱스 (CSV 워커 파싱) ===== */
+  /* ===== 4) 데이터 로드 (스냅샷 우선 → CSV 폴백) + 인덱스 워커 ===== */
   let rows=[], ready=false, charIndex={}, tokenIndex={};
 
-  const workerSrc=`self.onmessage=e=>{const{type,data}=e.data||{};if(type!=="build")return;
+  const idxWorkerSrc=`self.onmessage=e=>{const{type,data}=e.data||{};if(type!=="build")return;
     const c=Object.create(null),t=Object.create(null),L=x=>/[a-z0-9]/i.test(x);
     for(const it of data){const i=it.i|0;const S=new Set(it.idxChars.split(""));for(const ch of S){if(!ch||L(ch)||" ,._-".includes(ch))continue;(c[ch]||(c[ch]=[])).push(i);}
       for(const tk of it.idxLatinTokens||[]){if(!tk)continue;(t[tk]||(t[tk]=[])).push(i);}}
     for(const k in c)c[k].sort((a,b)=>a-b);for(const k in t)t[k].sort((a,b)=>a-b);
     self.postMessage({type:"built",charIndex:c,tokenIndex:t});}`;
-  const idxWorker=new Worker(URL.createObjectURL(new Blob([workerSrc],{type:"text/javascript"})));
+  const idxWorker=new Worker(URL.createObjectURL(new Blob([idxWorkerSrc],{type:"text/javascript"})));
   idxWorker.onmessage=(e)=>{if(e.data?.type==="built"){charIndex=e.data.charIndex||{};tokenIndex=e.data.tokenIndex||{};ready=true; renderLazyByCategory(rows); loading.style.display="none";}};
+
+  async function fetchSnapshot(){
+    try{
+      const r=await fetch(SNAPSHOT_URL+'?t='+Date.now(),{cache:'no-cache'});
+      if(!r.ok) return null;
+      return await r.json(); // {rows:[{...}], generated:"..."}
+    }catch{ return null; }
+  }
 
   (async function boot(){
     loading.style.display="block";
-    await ensureHints(); // 스프라이트/지원목록 먼저 로드
+    await ensureHints(); // 스프라이트/지원목록 감지 + 프리로드
 
-    const resp = await fetch(DATA_URL + (DATA_URL.includes('?')?'&':'?') + 't=' + Date.now(), {cache:'no-cache', mode:'cors'});
-    if(!resp.ok){ loading.style.display="none"; zero.style.display="block"; zero.textContent="CSV 로드 실패: "+resp.status; console.error("CSV 실패", resp.status, DATA_URL); return; }
-    const csv = await resp.text();
+    let dataRows=null;
+    const snapshot=await fetchSnapshot();
+    if(snapshot && Array.isArray(snapshot.rows) && snapshot.rows.length){
+      dataRows=snapshot.rows;
+    }else{
+      // CSV 폴백 (최초 세팅·스냅샷 없을 때)
+      const resp=await fetch(DATA_URL+(DATA_URL.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-cache',mode:'cors'});
+      if(!resp.ok){ loading.style.display="none"; zero.style.display="block"; zero.textContent="CSV 로드 실패: "+resp.status; return; }
+      const csv=await resp.text();
+      const parsed = await new Promise(resolve=>Papa.parse(csv,{header:true,skipEmptyLines:true,worker:true,complete:resolve}));
+      dataRows = parsed.data;
+    }
 
-    // CSV 파싱을 워커로
-    const parsed = await new Promise(resolve => Papa.parse(csv, { header:true, skipEmptyLines:true, worker:true, complete: resolve }));
-    const rowsRaw = parsed.data || [];
     const normRow = row => { const o={}; for(const k in row){ o[String(k||"").trim().toLowerCase()] = row[k]; } return o; };
-    const data = rowsRaw.map(normRow);
-    if(!data.length){ loading.style.display="none"; zero.style.display="block"; zero.textContent="CSV가 비어있습니다."; return; }
+    const data = dataRows.map(normRow);
+    if(!data.length){ loading.style.display="none"; zero.style.display="block"; zero.textContent="데이터가 비어있습니다."; return; }
 
     const headers = Object.keys(data[0]||{});
     const expandVariants=(bases)=>{ const B=bases.map(x=>x.toLowerCase()); return headers.filter(h=>B.some(b=>h===b||h.startsWith(b+"_"))); };
-    const EXPANDED_SAFE_FIELDS = expandVariants(SAFE_FIELDS_BASE);
+    const EXPANDED_SAFE_FIELDS=expandVariants(SAFE_FIELDS_BASE);
     const nameCandidatesFor=base=>[`${base}_manual_alt`,`${base}_alt`,`${base}_manual`,base];
     const NAME_FIELDS_ALL=NAME_FIELDS_BASE.flatMap(nameCandidatesFor);
     const TOKEN_AUX_FIELDS=["name_en","name_en_alt","name_en_manual","name_en_manual_alt"].filter(f=>headers.includes(f));
@@ -247,8 +265,8 @@
   })();
 
   /* ===== 5) 검색 ===== */
-  const $q=document.getElementById("q"), $list=document.getElementById("list"), $zero=document.getElementById("zero"); let t;
-  $q.addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(runSearch,160); });
+  const $q=document.getElementById("q"), $list=document.getElementById("list"), $zero=document.getElementById("zero");
+  let t; $q.addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(runSearch,160); });
 
   function unionArrays(arrs){ const s=new Set(); for(const a of arrs){ if(!a) continue; for(const v of a) s.add(v); } return [...s]; }
 
@@ -258,8 +276,7 @@
     if(!q){ document.body.classList.remove("searching"); renderLazyByCategory(rows); return; }
     document.body.classList.add("searching");
 
-    const latin=isLatin(q);
-    const chars=latin?[]:uniq(q.split("").filter(Boolean));
+    const latin=isLatin(q); const chars=latin?[]:uniq(q.split("").filter(Boolean));
     const tokens=latin?uniq(q.split(/[\s,]+/).map(toLower).filter(Boolean)):[];
     let candidateIdxs;
     if(!latin){ const lists=chars.map(ch=>charIndex[ch]); candidateIdxs=unionArrays(lists); }
@@ -286,7 +303,7 @@
     renderAllGrouped(hits.slice(0,MAX_RESULTS).map(x=>x.r), q);
   }
 
-  /* ===== 6) 렌더링: 온디맨드 & 전체 ===== */
+  /* ===== 6) 렌더: 온디맨드 & 전체 ===== */
   function groupBy(items, keyFn){ const m=new Map(); for(const it of items){ const k=keyFn(it)||"Uncategorized"; if(!m.has(k)) m.set(k,[]); m.get(k).push(it);} return m; }
   const observers=[];
 
@@ -308,10 +325,7 @@
         function renderChunk(){
           const end=Math.min(start+EMOJI_CHUNK,arr.length);
           const slice=arr.slice(start,end);
-          const inner=slice.map(r=>{
-            const title=esc(r.name||"");
-            return `<div class="e" data-emoji="${esc(r.emoji||'')}" data-code="${esc(r.code||'')}" title="${title}"><span class="glyph"></span></div>`;
-          }).join("");
+          const inner=slice.map(r=>`<div class="e" data-emoji="${esc(r.emoji||'')}" data-code="${esc(r.code||'')}" title="${esc(r.name||'')}"><span class="glyph"></span></div>`).join("");
           const tmp=document.createElement("div"); tmp.innerHTML=inner; while(tmp.firstChild) grid.appendChild(tmp.firstChild);
           paintNewGlyphs(grid);
           start=end; if(start<arr.length) rIC(renderChunk);
@@ -319,7 +333,7 @@
         renderChunk();
       };
 
-      if(idx < ABOVE_FOLD_CATS) renderSection();
+      if(idx<ABOVE_FOLD_CATS) renderSection();
       else {
         const io=new IntersectionObserver((ents,obs)=>{ ents.forEach(e=>{ if(e.isIntersecting){ renderSection(); obs.unobserve(e.target);} }); }, {rootMargin:"1200px"});
         io.observe(sec); observers.push(io);
@@ -342,11 +356,7 @@
         function chunk(){
           const end=Math.min(start+EMOJI_CHUNK,arr.length);
           const slice=arr.slice(start,end);
-          const inner=slice.map(r=>{
-            const title=esc(r.name||"");
-            const nm=query?`<div class="nm">${esc(r.name||"")}</div>`:"";
-            return `<div class="e" data-emoji="${esc(r.emoji||'')}" data-code="${esc(r.code||'')}" title="${title}"><span class="glyph"></span>${nm}</div>`;
-          }).join("");
+          const inner=slice.map(r=>`<div class="e" data-emoji="${esc(r.emoji||'')}" data-code="${esc(r.code||'')}" title="${esc(r.name||'')}"><span class="glyph"></span>${query?`<div class="d"><div class="nm">${esc(r.name||'')}</div></div>`:''}</div>`).join("");
           const tmp=document.createElement("div"); tmp.innerHTML=inner; while(tmp.firstChild) grid.appendChild(tmp.firstChild);
           paintNewGlyphs(grid);
           start=end; if(start<arr.length) rIC(chunk);
@@ -358,15 +368,18 @@
     next();
   }
 
-  /* ===== 7) 클릭 → 복사 + 복사칩 컬러 ===== */
+  /* ===== 7) 클릭 → 복사 + 복사칩(배경 그대로 복제: 네트워크 0회) ===== */
   const copybar=document.getElementById("copybar");
   document.addEventListener("click",async ev=>{
     const tile=ev.target.closest(".e"); if(!tile) return;
-    const emoji=tile.getAttribute("data-emoji")||"", code=tile.getAttribute("data-code")||"";
-    try{ await navigator.clipboard.writeText(emoji||''); }catch(e){}
-    const chip=document.createElement("span"); chip.className="copyglyph";
-    // 같은 로직으로 칠함
-    paintGlyphEl(chip, code, emoji);
+    const emoji=tile.getAttribute("data-emoji")||"";
+    try{ await navigator.clipboard.writeText(emoji); }catch(e){}
+    const g=tile.querySelector(".glyph"); const st=getComputedStyle(g);
+    const chip=document.createElement("span"); chip.className="copyglyph"; chip.textContent="";
+    chip.style.backgroundImage=st.backgroundImage;
+    chip.style.backgroundPosition=st.backgroundPosition;
+    chip.style.backgroundSize=st.backgroundSize;
+    chip.style.backgroundRepeat="no-repeat"; chip.style.backgroundColor="transparent";
     copybar.appendChild(chip);
   });
 
