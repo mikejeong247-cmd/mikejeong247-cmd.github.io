@@ -1,0 +1,46 @@
+name: Build Data & Sprites
+
+on:
+  workflow_dispatch:        # 수동 실행 버튼
+  schedule:
+    - cron: "0 */6 * * *"   # 6시간마다 자동 실행
+
+permissions:
+  contents: write           # 🔑 Actions가 커밋/푸시하려면 필요
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install deps
+        run: |
+          npm init -y
+          npm i node-fetch@3 papaparse sharp
+
+      - name: Build snapshot (CSV -> /data/build.json)
+        run: |
+          node scripts/csv-to-json.mjs \
+            --data="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1543598799&single=true&output=csv" \
+            --out=./data/build.json
+
+      - name: Build sprites + support hints (Top500, PNG only)
+        run: |
+          node scripts/build-sprites.mjs \
+            --data="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1543598799&single=true&output=csv" \
+            --n=500 --tile=72 --cols=40 --rows=13 --out=./sprites
+
+      - name: Commit generated artifacts
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data sprites
+          git commit -m "chore: update snapshot & sprites (Top500)" || echo "No changes"
+          git push
