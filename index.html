@@ -22,78 +22,39 @@
       --cat-gap-between:100px; /* 섹션 간격 */
       --cat-to-grid-gap:20px;  /* 카테고리↔그리드 간격 */
     }
-    body{
-      font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial;
-      margin:16px;color:#222;
-    }
+    body{ font-family:system-ui,apple sd gothic neo,Segoe UI,Roboto,Helvetica,Arial; margin:16px;color:#222; }
 
-    /* 상단: 중앙 정렬 */
-    .toolbar{
-      display:flex;justify-content:center;align-items:center;
-      gap:10px;flex-wrap:wrap;margin-bottom:8px
-    }
+    .toolbar{ display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px }
     .searchwrap{width:100%;max-width:680px;min-width:260px}
-    .search{
-      width:100%; height:var(--search-h);
-      padding:0 14px;font-size:16px;
-      border:1px solid #ddd;border-radius:12px;outline:none
-    }
+    .search{ width:100%; height:var(--search-h); padding:0 14px;font-size:16px; border:1px solid #ddd;border-radius:12px;outline:none }
 
-    /* 복사창: 검색창과 동일 폭, 높이는 2배 */
     .copywrap{width:100%;max-width:680px;min-width:260px;margin:6px auto 14px}
     .copybar{
       height:calc(var(--search-h) * 2);
       border:1px dashed #ddd;border-radius:12px;
-      padding:8px 10px;overflow:auto;
-      display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px
+      padding:8px 10px;overflow:auto; display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px
     }
     .copyhint{width:100%;color:#666;font-size:12px}
-    .copyglyph{
-      display:inline-block;width:25px;height:25px;
-      background-size:contain;background-repeat:no-repeat;background-position:center;
-      line-height:1;border-radius:4px;border:1px solid #eee;
-    }
+    .copyglyph{ display:inline-block;width:25px;height:25px;background-size:contain;background-repeat:no-repeat;background-position:center; line-height:1;border-radius:4px;border:1px solid #eee; }
 
-    /* 카테고리 섹션: 오프스크린 렌더 스킵 */
     #list{display:block}
-    .sec{
-      margin:0 0 var(--cat-gap-between);
-      content-visibility:auto;                 /* 뷰포트 밖 렌더 생략 */
-      contain-intrinsic-size: 1200px;          /* 대충의 예상 높이(레이아웃 점프 예방) */
-    }
-    .cat{
-      font-weight:700;font-size:20px;
-      margin:6px 0 var(--cat-to-grid-gap);
-      display:flex;align-items:center;gap:6px;justify-content:center;
-    }
-    .cnt{color:#999;font-weight:400;font-size:12px}
+    .sec{ margin:0 0 var(--cat-gap-between); content-visibility:auto; contain-intrinsic-size:1200px; }
+    .cat{ font-weight:700;font-size:20px; margin:6px 0 var(--cat-to-grid-gap); display:flex;align-items:center;gap:6px;justify-content:center; }
+    .cnt{ color:#999;font-weight:400;font-size:12px }
 
-    /* 600px · 27칸 그리드 — 좌측 정렬 */
     .emojis{
-      width:var(--grid-width);
-      margin:0 auto;
-      display:grid;
-      grid-template-columns:repeat(var(--cols), 1fr);
-      justify-items:start;                     /* 칸 안에서 좌정렬 */
-      align-items:center;
-      gap:var(--grid-gap);                     /* 가로/세로 2px */
+      width:var(--grid-width); margin:0 auto; display:grid;
+      grid-template-columns:repeat(var(--cols), 1fr); justify-items:start; align-items:center; gap:var(--grid-gap);
     }
 
-    /* 이모지 타일 */
-    .e{
-      width:var(--emoji-size); height:var(--emoji-size);
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; user-select:none;
-    }
+    .e{ width:var(--emoji-size); height:var(--emoji-size); display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; }
     .glyph{
-      display:inline-block;
-      width:var(--emoji-size); height:var(--emoji-size);
+      display:inline-block; width:var(--emoji-size); height:var(--emoji-size);
       /* 텍스트 대신 배경이미지로 칠함(컬러 100%) */
       background-size:contain; background-repeat:no-repeat; background-position:center;
       line-height:var(--emoji-size); font-size:var(--emoji-size); text-align:center;
     }
 
-    /* name/keywords: 검색 때만 보임 (Compact에선 기본 감춤) */
     .d{display:none}
     body.searching .emojis{display:grid}
     body.searching .e{width:auto;height:auto;display:flex;align-items:flex-start;gap:6px;margin:2px 0}
@@ -105,165 +66,70 @@
 
     .zero{margin-top:12px;color:#666;text-align:center}
 
-    /* 광고 슬롯(섹션 N개마다) — Q2 반영: 기본 숨김 */
-    .ad-slot{
-      width:600px;height:280px;margin:24px auto;border:1px solid #eee;border-radius:8px;
-      display:flex;align-items:center;justify-content:center;color:#999;font-size:12px;background:#fafafa
-    }
-
-    /* RTL (아랍어/히브리어 등) */
-    html[dir="rtl"] .cat{ direction:rtl }
-    html[dir="rtl"] .emojis{ direction:rtl }
+    /* RTL */
+    html[dir="rtl"] .cat{ direction:rtl } html[dir="rtl"] .emojis{ direction:rtl }
   </style>
-
-  <!-- (선택) AdSense: 사용할 경우, 아래 한 줄을 <head> 안에 1회 삽입 후 ADS.type='adsense'로 변경 -->
-  <!--
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
-  -->
 </head>
 <body>
-  <div class="toolbar">
-    <div class="searchwrap">
-      <input id="q" class="search" placeholder="">
-    </div>
-  </div>
+  <div class="toolbar"><div class="searchwrap"><input id="q" class="search" placeholder=""></div></div>
 
-  <!-- 복사창(검색창 아래, 같은 폭 / 2배 높이) -->
-  <div class="copywrap">
-    <div id="copybar" class="copybar">
-      <span id="copyhint" class="copyhint"></span>
-    </div>
-  </div>
+  <div class="copywrap"><div id="copybar" class="copybar"><span id="copyhint" class="copyhint"></span></div></div>
 
   <div id="list"></div>
   <div id="loading" class="zero" style="display:none;">데이터 불러오는 중…</div>
   <div id="zero" class="zero" style="display:none;">결과가 없습니다.</div>
 
-  <!-- CSV 파서 -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
   <script>
-  /** ====== 설정 ====== */
+  /* ========== 설정 ========== */
 
-  // ⛳ 1) BUILD 시트를 CSV로 공개한 최종 주소로 교체하세요.
+  /* ✔ 두목이 준 CSV 주소(웹에 게시·CSV) 그대로 적용 */
   const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1543598799&single=true&output=csv";
 
-  // 2) 표시 이름 우선순위 — manual_alt > alt > manual > base 순 자동 보강
-  const NAME_FIELDS_BASE = [
-    "name_ko","name_ja","name_zh-cn","name_en",
-    "name_es","name_ar","name_pt","name_ru","name_fr","name_tr",
-    "name_id","name_hi","name_de"
-  ];
+  const NAME_FIELDS_BASE = ["name_ko","name_ja","name_zh-cn","name_en","name_es","name_ar","name_pt","name_ru","name_fr","name_tr","name_id","name_hi","name_de"];
+  const SAFE_FIELDS_BASE = ["keywords_ko_safe","keywords_ja_safe","keywords_zh-cn_safe","keywords_es_safe","keywords_ar_safe","keywords_pt_safe","keywords_ru_safe","keywords_fr_safe","keywords_tr_safe","keywords_id_safe","keywords_hi_safe","keywords_de_safe"];
 
-  // 3) SAFE 인덱스 기본 키(동일 계열의 *_alt, *_v2 등은 자동 흡수)
-  const SAFE_FIELDS_BASE = [
-    "keywords_ko_safe","keywords_ja_safe","keywords_zh-cn_safe",
-    "keywords_es_safe","keywords_ar_safe","keywords_pt_safe",
-    "keywords_ru_safe","keywords_fr_safe","keywords_tr_safe",
-    "keywords_id_safe","keywords_hi_safe","keywords_de_safe"
-  ];
-
-  // 4) 검색/정렬 파라미터 — 전부 노출(렌더는 청크로)
   const MAX_RESULTS = Infinity;
   const SCORE = { nameHit: 3, tokenHit: 1, categoryHit: 0.5 };
-  // ✅ Q3 외 항목 반영: 라틴 노이즈 완화 → 최소 토큰 길이 3자
   const MIN_LATIN_TOKEN_LEN = 3;
 
-  // 5) 렌더링 최적화 파라미터(느긋하게 뿌리기)
-  const CATEGORY_CHUNK = 1;   // 카테고리 섹션 1개씩
-  const EMOJI_CHUNK    = 120; // 이모지 120개씩
+  const CATEGORY_CHUNK = 1;
+  const EMOJI_CHUNK    = 120;
 
-  // 6) 광고(선택): 섹션 N개마다 삽입 — ✅ Q2 반영: 기본 비활성화
-  const ADS = {
-    enabled: false,      // ← 광고 숨김
-    every: 2,            // 섹션 N개마다 광고 1개
-    type: "house",       // "house" | "adsense"
-    houseHTML: `<div class="ad-slot">Ad slot (600x280)</div>`,
-    adsenseHTML: `
-      <div class="ad-slot">
-        <ins class="adsbygoogle"
-             style="display:block;max-width:600px;width:100%;height:280px"
-             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-             data-ad-slot="YYYYYYYYYY"
-             data-ad-format="auto"></ins>
-      </div>
-      <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>
-    `
-  };
-
-  /** ====== i18n & RTL ====== */
+  /* i18n & RTL */
   const rawLang = (navigator.language || "en").toLowerCase();
-  if (/^(ar|fa|ur|he)(-|$)/i.test(rawLang)) { document.documentElement.setAttribute('dir','rtl'); }
-
-  const LC = rawLang.startsWith("zh")
-    ? (rawLang.includes("tw") || rawLang.includes("hk") ? "zh-tw" : "zh-cn")
-    : rawLang.split("-")[0]; // ko, ja, es, ar, pt, ru, fr, tr, id, hi, de, en
+  if (/^(ar|fa|ur|he)(-|$)/i.test(rawLang)) document.documentElement.setAttribute('dir','rtl');
+  const LC = rawLang.startsWith("zh") ? (rawLang.includes("tw")||rawLang.includes("hk") ? "zh-tw" : "zh-cn") : rawLang.split("-")[0];
 
   const I18N_TEXT = {
-    placeholder: {
-      "ko":"검색", "ja":"検索", "zh-cn":"搜索", "zh-tw":"搜尋", "en":"Search",
-      "es":"Buscar", "ar":"بحث", "pt":"Pesquisar", "ru":"Поиск",
-      "fr":"Rechercher", "tr":"Ara", "id":"Cari", "hi":"खोजें", "de":"Suchen"
-    },
-    copyHint: {
-      "ko":"이모지를 누르면 복사됩니다",
-      "ja":"絵文字をクリックするとコピーされます",
-      "zh-cn":"点击表情即可复制",
-      "zh-tw":"點擊表情即可複製",
-      "en":"Click emoji to copy",
-      "es":"Haz clic en un emoji para copiarlo",
-      "ar":"انقر على الإيموجي للنسخ",
-      "pt":"Clique no emoji para copiar",
-      "ru":"Нажмите на эмодзи, чтобы скопировать",
-      "fr":"Cliquez sur un emoji pour copier",
-      "tr":"Emojiyi kopyalamak için tıklayın",
-      "id":"Klik emoji untuk menyalin",
-      "hi":"इमोजी पर क्लिक करें, कॉपी हो जाएगा",
-      "de":"Emoji anklicken zum Kopieren"
-    }
+    placeholder: { "ko":"검색","ja":"検索","zh-cn":"搜索","zh-tw":"搜尋","en":"Search","es":"Buscar","ar":"بحث","pt":"Pesquisar","ru":"Поиск","fr":"Rechercher","tr":"Ara","id":"Cari","hi":"खोजें","de":"Suchen" },
+    copyHint: { "ko":"이모지를 누르면 복사됩니다","ja":"絵文字をクリックするとコピーされます","zh-cn":"点击表情即可复制","zh-tw":"點擊表情即可複製","en":"Click emoji to copy","es":"Haz clic en un emoji para copiarlo","ar":"انقر على الإيموجي للنسخ","pt":"Clique no emoji para copiar","ru":"Нажмите на эмодзи, чтобы скопировать","fr":"Cliquez sur un emoji pour copier","tr":"Emojiyi kopyalamak için tıklayın","id":"Klik emoji untuk menyalin","hi":"इमोजी पर क्लिक करें, कॉपी हो जाएगा","de":"Emoji anklicken zum Kopieren" }
   };
+  (function initI18N(){ const ph=(I18N_TEXT.placeholder[LC]||I18N_TEXT.placeholder.en)+'…'; q.placeholder=ph; copyhint.textContent=I18N_TEXT.copyHint[LC]||I18N_TEXT.copyHint.en; })();
 
-  (function initI18N(){
-    const ph = (I18N_TEXT.placeholder[LC] || I18N_TEXT.placeholder.en) + "…";
-    document.getElementById("q").placeholder = ph;
-    document.getElementById("copyhint").textContent = I18N_TEXT.copyHint[LC] || I18N_TEXT.copyHint.en;
-  })();
-
-  /** ====== 유틸 ====== */
+  /* 유틸 */
   const rmDiacritics = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   const toLower = s => rmDiacritics(String(s||"")).toLowerCase();
   const splitLatin = s => toLower(s).split(/[^a-z0-9]+/).filter(t=>t.length>=MIN_LATIN_TOKEN_LEN);
   const uniq = arr => [...new Set(arr)];
   const isLatin = s => /^[a-z0-9\s,._-]+$/i.test(rmDiacritics(s||""));
   const esc = s => (s||"").replace(/[&<>"]/g, m=>({ "&":"&amp;","<":"&lt;","&gt;":"&gt;",'"':"&quot;"}[m]));
+  const rIC = window.requestIdleCallback ? (cb)=>window.requestIdleCallback(cb,{timeout:80}) : (cb)=>setTimeout(cb,0);
 
-  /** ====== 컬러 100% 보장 + 스프라이트 자동 감지 (Q1+Q3) ====== */
+  /* ===== 컬러 보장: Twemoji / 자동 변환 ===== */
   const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14/assets';
-  const TWEMOJI_EXT  = 'svg'; // 'svg' | '72x72' (png)
+  const TWEMOJI_EXT  = 'svg';
 
-  // 스프라이트 자동 감지(있으면 사용)
-  let RENDERER_MODE = 'sprite';           // 기본 스프라이트 시도
-  const SPRITE_CDN_BASE = '/sprites';     // /sprites/SPRITE_MAP.json 이 있으면 가속
-  let SPRITE_MAP = null;
-
-  async function ensureSpriteMap(){
-    try {
-      const res = await fetch(`${SPRITE_CDN_BASE}/SPRITE_MAP.json?ts=${Date.now()}`, {cache:'no-cache'});
-      if(res.ok){ SPRITE_MAP = await res.json(); RENDERER_MODE = 'sprite'; }
-      else { RENDERER_MODE = 'cdn'; }
-    } catch(e){ RENDERER_MODE = 'cdn'; }
-  }
-
-  // Twemoji 파일명 규칙 자동 변환 + 실패 시 폰트 폴백
   function normalizeCodeForTwemoji(code, emojiText){
-    let f = (code || '').toLowerCase().trim();
-    // 예: U+1F60A / 1F469 200D 1F4BB / 1f60a → 하이픈 연결
-    f = f.replace(/u\+/gi,'').replace(/\s+/g,'-').replace(/_/g,'-');
+    // "emoti U+1F602", "U+1F469 U+200D U+1F4BB", "1f602" 등 무엇이 와도 처리
+    let f = (code||'').toLowerCase().trim();
+    f = f.replace(/^[a-z]+\s+/,'')        // 선행 단어 제거(ex. "emoji ", "emoti ")
+         .replace(/u\+/gi,'')             // U+ 제거
+         .replace(/[_\s]+/g,'-');         // 공백/언더스코어 → 하이픈
     const valid = /^[0-9a-f]+(-[0-9a-f]+)*$/.test(f);
-    if (!valid || !f) {
-      if (emojiText) {
-        const cps = [];
-        for (const ch of emojiText) cps.push(ch.codePointAt(0).toString(16));
+    if (!valid || !f){
+      if (emojiText){
+        const cps=[]; for (const ch of emojiText) cps.push(ch.codePointAt(0).toString(16));
         f = cps.join('-');
       } else {
         f = '';
@@ -271,44 +137,19 @@
     }
     return f;
   }
-
-  function emojiURL(code, emojiText) {
+  function emojiURL(code, emojiText){
     const f = normalizeCodeForTwemoji(code, emojiText);
     if (!f) return '';
-    return (TWEMOJI_EXT === 'svg')
-      ? `${TWEMOJI_BASE}/svg/${f}.svg`
-      : `${TWEMOJI_BASE}/72x72/${f}.png`;
+    return (TWEMOJI_EXT==='svg') ? `${TWEMOJI_BASE}/svg/${f}.svg` : `${TWEMOJI_BASE}/72x72/${f}.png`;
   }
-
-  function paintGlyphEl(el, code, emojiText) {
-    const f = normalizeCodeForTwemoji(code, emojiText);
-    // 1) 스프라이트 우선
-    if (RENDERER_MODE==='sprite' && SPRITE_MAP && SPRITE_MAP[f]){
-      const m = SPRITE_MAP[f]; // {sheet,x,y,w,h}
-      el.textContent = '';
-      el.style.backgroundImage = `url(${SPRITE_CDN_BASE}/${m.sheet})`;
-      el.style.backgroundPosition = `-${m.x}px -${m.y}px`;
-      el.style.backgroundSize = `auto`;
-      el.style.display = 'inline-block';
-      return;
-    }
-    // 2) Twemoji CDN
-    const url = emojiURL(f, emojiText);
-    if (!url) { el.textContent = emojiText || '⬜'; el.style.backgroundImage=''; return; }
-    const img = new Image();
-    img.decoding = 'async';
-    img.onload = () => {
-      el.textContent = '';
-      el.style.backgroundImage = `url(${url})`;
-      el.style.backgroundSize = 'contain';
-      el.style.backgroundRepeat = 'no-repeat';
-      el.style.backgroundPosition = 'center';
-      el.style.display = 'inline-block';
-    };
-    img.onerror = () => { el.textContent = emojiText || '⬜'; el.style.backgroundImage=''; };
+  function paintGlyphEl(el, code, emojiText){
+    const url = emojiURL(code, emojiText);
+    if (!url){ el.textContent = emojiText || '⬜'; el.style.backgroundImage=''; return; }
+    const img = new Image(); img.decoding='async';
+    img.onload = ()=>{ el.textContent=''; el.style.backgroundImage=`url(${url})`; el.style.backgroundSize='contain'; el.style.backgroundRepeat='no-repeat'; el.style.backgroundPosition='center'; el.style.display='inline-block'; };
+    img.onerror= ()=>{ el.textContent = emojiText || '⬜'; el.style.backgroundImage=''; };
     img.src = url;
   }
-
   function paintNewGlyphs(container){
     container.querySelectorAll('.e:not([data-painted])').forEach(tile=>{
       const g = tile.querySelector('.glyph');
@@ -317,333 +158,159 @@
     });
   }
 
-  /** ====== 데이터 로드 (SAFE-only + *_alt 자동흡수) ====== */
-  let rows = [];
-  let ready = false;
-
-  // 인버티드 인덱스(웹워커)
-  let charIndex = {};   // { char: [rowIdx, ...] }
-  let tokenIndex = {};  // { token: [rowIdx, ...] }
+  /* ===== 데이터 로드 & 인덱스 ===== */
+  let rows=[], ready=false; let charIndex={}, tokenIndex={};
 
   const workerSrc = `
     self.onmessage = (e)=>{
-      const {type, data} = e.data||{};
-      if(type!=="build") return;
-      const charIndex = Object.create(null);
-      const tokenIndex = Object.create(null);
+      const {type, data} = e.data||{}; if(type!=="build") return;
+      const charIndex = Object.create(null), tokenIndex = Object.create(null);
       const isLatinChar = (c)=> /[a-z0-9]/i.test(c);
       for(const item of data){
-        const i = item.i|0;
-        const set = new Set(item.idxChars.split(""));
-        for(const ch of set){
-          if(!ch || isLatinChar(ch) || ch===" " || ch==="," || ch==="." || ch==="_" || ch==="-" ) continue;
-          if(!charIndex[ch]) charIndex[ch] = [];
-          charIndex[ch].push(i);
-        }
-        for(const t of item.idxLatinTokens||[]){
-          if(!t) continue;
-          if(!tokenIndex[t]) tokenIndex[t] = [];
-          tokenIndex[t].push(i);
-        }
+        const i=item.i|0, set=new Set(item.idxChars.split(""));
+        for(const ch of set){ if(!ch||isLatinChar(ch)||" ,._-".includes(ch)) continue; (charIndex[ch]||(charIndex[ch]=[])).push(i); }
+        for(const t of item.idxLatinTokens||[]){ if(!t) continue; (tokenIndex[t]||(tokenIndex[t]=[])).push(i); }
       }
-      for(const k in charIndex){ charIndex[k].sort((a,b)=>a-b); }
-      for(const k in tokenIndex){ tokenIndex[k].sort((a,b)=>a-b); }
+      for(const k in charIndex) charIndex[k].sort((a,b)=>a-b);
+      for(const k in tokenIndex) tokenIndex[k].sort((a,b)=>a-b);
       self.postMessage({type:"built", charIndex, tokenIndex});
-    };
-  `;
-  const worker = new Worker(URL.createObjectURL(new Blob([workerSrc], {type:"text/javascript"})));
-
-  worker.onmessage = (e)=>{
-    if(e.data && e.data.type==="built"){
-      charIndex = e.data.charIndex||{};
-      tokenIndex = e.data.tokenIndex||{};
-      ready = true;
-      renderChunkedByCategory(rows);  // 첫 화면: 점진 렌더 시작
-      document.getElementById("loading").style.display="none";
-    }
-  };
+    };`;
+  const worker = new Worker(URL.createObjectURL(new Blob([workerSrc],{type:"text/javascript"})));
+  worker.onmessage = (e)=>{ if(e.data?.type==="built"){ charIndex=e.data.charIndex||{}; tokenIndex=e.data.tokenIndex||{}; ready=true; renderChunkedByCategory(rows); loading.style.display="none"; } };
 
   (async function load(){
-    document.getElementById("loading").style.display="block";
-    // 스프라이트 감지 먼저 시도(있으면 곧바로 가속)
-    await ensureSpriteMap();
+    loading.style.display="block";
 
-    const resp = await fetch(
-      DATA_URL + (DATA_URL.includes('?') ? '&' : '?') + 't=' + Date.now(),
-      { cache:"no-cache", mode:"cors" } // 최신 CSV 강제
-    );
-    if(!resp.ok) {
-      document.getElementById("loading").style.display="none";
-      const z=document.getElementById("zero");
-      z.style.display="block"; z.textContent = "CSV 로드 실패: " + resp.status + " (DATA_URL 확인)";
-      console.error("CSV 실패", resp.status, DATA_URL);
-      return;
-    }
+    const resp = await fetch(DATA_URL + (DATA_URL.includes('?')?'&':'?') + 't=' + Date.now(), {cache:'no-cache', mode:'cors'});
+    if(!resp.ok){ loading.style.display="none"; zero.style.display="block"; zero.textContent="CSV 로드 실패: "+resp.status; console.error("CSV 실패", resp.status, DATA_URL); return; }
     const csv = await resp.text();
-
-    const parsed = Papa.parse(csv, { header:true, skipEmptyLines:true });
+    const parsed = Papa.parse(csv, {header:true, skipEmptyLines:true});
 
     const normRow = row => { const o={}; for(const k in row){ o[String(k||"").trim().toLowerCase()] = row[k]; } return o; };
     const data = parsed.data.map(normRow);
-    if(!data.length) {
-      document.getElementById("loading").style.display="none";
-      const z=document.getElementById("zero");
-      z.style.display="block"; z.textContent = "CSV가 비어있습니다.";
-      return;
-    }
+    if(!data.length){ loading.style.display="none"; zero.style.display="block"; zero.textContent="CSV가 비어있습니다."; return; }
 
-    const headers = Object.keys(data[0] || {});
-    const expandVariants = (baseList) => {
-      const bases = baseList.map(b => b.toLowerCase());
-      return headers.filter(h => bases.some(base => h === base || h.startsWith(base + "_")));
-    };
+    const headers = Object.keys(data[0]||{});
+    const expandVariants = (baseList)=>{ const bases=baseList.map(b=>b.toLowerCase()); return headers.filter(h=>bases.some(base=>h===base || h.startsWith(base+"_"))); };
     const EXPANDED_SAFE_FIELDS = expandVariants(SAFE_FIELDS_BASE);
-    const nameCandidatesFor = (base) => ([`${base}_manual_alt`, `${base}_alt`, `${base}_manual`, base]);
+    const nameCandidatesFor = (base)=>[`${base}_manual_alt`, `${base}_alt`, `${base}_manual`, base];
     const NAME_FIELDS_ALL = NAME_FIELDS_BASE.flatMap(nameCandidatesFor);
-    const TOKEN_AUX_FIELDS = ["name_en","name_en_alt","name_en_manual","name_en_manual_alt"].filter(f => headers.includes(f));
+    const TOKEN_AUX_FIELDS = ["name_en","name_en_alt","name_en_manual","name_en_manual_alt"].filter(f=>headers.includes(f));
 
-    rows = data.map(r => {
-      const name = (NAME_FIELDS_ALL.find(f => r[f]) && NAME_FIELDS_ALL.map(f=>r[f]).find(Boolean)) || r["name_en"] || "";
-      const safeStrings = [
-        ...EXPANDED_SAFE_FIELDS.map(f => r[f] || ""),
-        ...TOKEN_AUX_FIELDS.map(f => r[f] || "")
-      ].join(",");
+    rows = data.map(r=>{
+      const name = (NAME_FIELDS_ALL.find(f=>r[f]) && NAME_FIELDS_ALL.map(f=>r[f]).find(Boolean)) || r["name_en"] || "";
+      const safeStrings = [...EXPANDED_SAFE_FIELDS.map(f=>r[f]||""), ...TOKEN_AUX_FIELDS.map(f=>r[f]||"")].join(",");
       const idxStr = toLower(safeStrings);
-      const idxChars = idxStr;                          // 비라틴: 문자 포함 검사
-      const idxLatinTokens = uniq(splitLatin(idxStr));  // 라틴: 토큰 배열
+      const idxChars = idxStr;
+      const idxLatinTokens = uniq(splitLatin(idxStr));
       const safeKo = r["keywords_ko_safe"] || r["keywords_ko_safe_alt"] || "";
-
-      return {
-        id: r.id, category: r.category || "", code: (r.code||"").toLowerCase(), emoji: r.emoji || "",
-        name, name_en: r["name_en"] || "",
-        idxChars, idxLatinTokens,
-        safeKo
-      };
+      return { id:r.id, category:r.category||"", code:(r.code||"").toLowerCase(), emoji:r.emoji||"", name, name_en:r["name_en"]||"", idxChars, idxLatinTokens, safeKo };
     });
 
-    // 인덱스 빌드 요청
-    worker.postMessage({
-      type:"build",
-      data: rows.map((r, i)=>({ i, idxChars: r.idxChars, idxLatinTokens: r.idxLatinTokens }))
-    });
+    worker.postMessage({ type:"build", data: rows.map((r,i)=>({i, idxChars:r.idxChars, idxLatinTokens:r.idxLatinTokens})) });
   })();
 
-  /** ====== 검색 ====== */
-  const $q = document.getElementById("q");
-  const $list = document.getElementById("list");
-  const $zero = document.getElementById("zero");
-  let t;
+  /* ===== 검색 ===== */
+  const $q = document.getElementById("q"), $list=document.getElementById("list"), $zero=document.getElementById("zero"); let t;
+  $q.addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(runSearch,160); });
 
-  $q.addEventListener("input", () => {
-    clearTimeout(t);
-    t = setTimeout(runSearch, 160); // 약간 더 느긋하게
-  });
-
-  function unionArrays(arrays){
-    const set = new Set();
-    for(const a of arrays){ if(!a) continue; for(const v of a) set.add(v); }
-    return [...set];
-  }
-
+  function unionArrays(arrays){ const set=new Set(); for(const a of arrays){ if(!a) continue; for(const v of a) set.add(v); } return [...set]; }
   function runSearch(){
-    if(!ready){ return; }
-    const qRaw = $q.value || "";
-    const q = toLower(qRaw.trim());
-
-    if(!q){
-      document.body.classList.remove("searching");
-      renderChunkedByCategory(rows);
-      return;
-    }
+    if(!ready) return;
+    const qRaw=$q.value||"", q=toLower(qRaw.trim());
+    if(!q){ document.body.classList.remove("searching"); renderChunkedByCategory(rows); return; }
     document.body.classList.add("searching");
-
-    const latin = isLatin(q);
-    const chars  = latin ? [] : uniq(q.split("").filter(Boolean));
-    const tokens = latin ? uniq(q.split(/[\s,]+/).map(toLower).filter(Boolean)) : [];
-
+    const latin=isLatin(q), chars=latin?[]:uniq(q.split("").filter(Boolean)), tokens=latin?uniq(q.split(/[\s,]+/).map(toLower).filter(Boolean)):[];
     let candidateIdxs;
-    if(!latin){
-      const lists = chars.map(ch => charIndex[ch]);
-      candidateIdxs = unionArrays(lists);
-    }else{
-      const lists = tokens.map(t => tokenIndex[t]);
-      candidateIdxs = unionArrays(lists);
-    }
-    if(!candidateIdxs.length){
-      $list.innerHTML = ""; $zero.style.display = "block"; return;
-    }
+    if(!latin){ const lists=chars.map(ch=>charIndex[ch]); candidateIdxs=unionArrays(lists); }
+    else { const lists=tokens.map(t=>tokenIndex[t]); candidateIdxs=unionArrays(lists); }
+    if(!candidateIdxs.length){ $list.innerHTML=""; $zero.style.display="block"; return; }
 
-    const hits = [];
+    const hits=[];
     for(const i of candidateIdxs){
-      const r = rows[i]; if(!r) continue;
-      let score = 0, matched = false;
-
+      const r=rows[i]; if(!r) continue; let score=0, matched=false;
       if(!latin){
-        for(const ch of chars){ if(r.idxChars.includes(ch)){ matched = true; score += SCORE.tokenHit; } }
-        for(const ch of chars){ if(toLower(r.name).includes(ch)){ score += SCORE.nameHit; matched = true; } }
+        for(const ch of chars){ if(r.idxChars.includes(ch)){ matched=true; score+=SCORE.tokenHit; } }
+        for(const ch of chars){ if(toLower(r.name).includes(ch)){ score+=SCORE.nameHit; matched=true; } }
       }else{
         for(const tkn of tokens){
-          if(r.idxLatinTokens.includes(tkn) || toLower(r.name_en).includes(tkn) || toLower(r.name).includes(tkn)){
-            matched = true; score += SCORE.tokenHit;
-            if(toLower(r.name).includes(tkn)) score += SCORE.nameHit;
+          if(r.idxLatinTokens.includes(tkn)||toLower(r.name_en).includes(tkn)||toLower(r.name).includes(tkn)){
+            matched=true; score+=SCORE.tokenHit; if(toLower(r.name).includes(tkn)) score+=SCORE.nameHit;
           }
         }
       }
-      for(const key of (latin ? tokens : chars)){
-        if(toLower(r.category).includes(key)) score += SCORE.categoryHit;
-      }
-      if(matched) hits.push({r, score});
+      for(const key of (latin?tokens:chars)){ if(toLower(r.category).includes(key)) score+=SCORE.categoryHit; }
+      if(matched) hits.push({r,score});
     }
-
-    hits.sort((a,b)=> b.score - a.score);
-    renderChunkedByCategory(hits.slice(0, MAX_RESULTS).map(x=>x.r), q);
+    hits.sort((a,b)=>b.score-a.score);
+    renderChunkedByCategory(hits.slice(0,MAX_RESULTS).map(x=>x.r), q);
   }
 
-  /** ====== 렌더(청크) & 하이라이트 & 카테고리 i18n ====== */
+  /* ===== 렌더 & 하이라이트 & 카테고리 i18n ===== */
   const CAT_I18N = {
-    "Smileys & Emotion": {"ko":"스마일 & 감정","ja":"スマイル・感情","zh-cn":"表情与情感","zh-tw":"表情與情感","en":"Smileys & Emotion","es":"Caritas y emociones","ar":"الابتسامات والمشاعر","pt":"Carinhas e emoção","ru":"Смайлы и эмоции","fr":"Sourires et émotions","tr":"Yüz ifadeleri ve duygular","id":"Senyum & emosi","hi":"मुस्कान व भावनाएँ","de":"Smileys & Emotionen"},
-    "People & Body": {"ko":"사람 & 몸","ja":"人・体","zh-cn":"人物与身体","zh-tw":"人物與身體","en":"People & Body","es":"Personas y cuerpo","ar":"الأشخاص والجسم","pt":"Pessoas e corpo","ru":"Люди и тело","fr":"Personnes et corps","tr":"İnsanlar ve vücut","id":"Orang & tubuh","hi":"लोग व शरीर","de":"Personen & Körper"},
-    "Animals & Nature": {"ko":"동물 & 자연","ja":"動物・自然","zh-cn":"动物与自然","zh-tw":"動物與自然","en":"Animals & Nature","es":"Animales y naturaleza","ar":"الحيوانات والطبيعة","pt":"Animais e natureza","ru":"Животные и природа","fr":"Animaux et nature","tr":"Hayvanlar ve doğa","id":"Hewan & alam","hi":"जानवर व प्रकृति","de":"Tiere & Natur"},
-    "Food & Drink": {"ko":"음식 & 음료","ja":"食べ物・飲み物","zh-cn":"食物与饮品","zh-tw":"食物與飲品","en":"Food & Drink","es":"Comida y bebida","ar":"الطعام والشراب","pt":"Comida e bebida","ru":"Еда и напитки","fr":"Nourriture & boissons","tr":"Yiyecek & içecek","id":"Makanan & minuman","hi":"भोजन व पेय","de":"Essen & Trinken"},
-    "Travel & Places": {"ko":"여행 & 장소","ja":"旅行・場所","zh-cn":"旅行与地点","zh-tw":"旅行與地點","en":"Travel & Places","es":"Viajes y lugares","ar":"السفر والأماكن","pt":"Viagens e lugares","ru":"Путешествия и места","fr":"Voyages & lieux","tr":"Seyahat & yerler","id":"Perjalanan & tempat","hi":"यात्रा व स्थान","de":"Reisen & Orte"},
-    "Activities": {"ko":"활동","ja":"アクティビティ","zh-cn":"活动","zh-tw":"活動","en":"Activities","es":"Actividades","ar":"أنشطة","pt":"Atividades","ru":"Активности","fr":"Activités","tr":"Aktiviteler","id":"Aktivitas","hi":"गतिविधियाँ","de":"Aktivitäten"},
-    "Objects": {"ko":"사물","ja":"物・道具","zh-cn":"物品","zh-tw":"物品","en":"Objects","es":"Objetos","ar":"أشياء","pt":"Objetos","ru":"Предметы","fr":"Objets","tr":"Nesneler","id":"Objek","hi":"वस्तुएँ","de":"Objekte"},
-    "Symbols": {"ko":"기호","ja":"記号","zh-cn":"符号","zh-tw":"符號","en":"Symbols","es":"Símbolos","ar":"رموز","pt":"Símbolos","ru":"Символы","fr":"Symboles","tr":"Semboller","id":"Simbol","hi":"प्रतीक","de":"Symbole"},
-    "Flags": {"ko":"깃발","ja":"旗","zh-cn":"旗帜","zh-tw":"旗幟","en":"Flags","es":"Banderas","ar":"أعلام","pt":"Bandeiras","ru":"Флаги","fr":"Drapeaux","tr":"Bayraklar","id":"Bendera","hi":"झंडे","de":"Flaggen"},
-    "Component": {"ko":"구성요소","ja":"コンポーネント","zh-cn":"组件","zh-tw":"元件","en":"Component","es":"Componente","ar":"مكوّن","pt":"Componente","ru":"Компонент","fr":"Composant","tr":"Bileşen","id":"Komponen","hi":"घटक","de":"Komponente"}
+    "Smileys & Emotion":{"ko":"스마일 & 감정","ja":"スマイル・感情","zh-cn":"表情与情感","zh-tw":"表情與情感","en":"Smileys & Emotion","es":"Caritas y emociones","ar":"الابتسامات والمشاعر","pt":"Carinhas e emoção","ru":"Смайлы и эмоции","fr":"Sourires et émotions","tr":"Yüz ifadeleri ve duygular","id":"Senyum & emosi","hi":"मुस्कान व भावनाएँ","de":"Smileys & Emotionen"},
+    "People & Body":{"ko":"사람 & 몸","ja":"人・体","zh-cn":"人物与身体","zh-tw":"人物與身體","en":"People & Body","es":"Personas y cuerpo","ar":"الأشخاص والجسم","pt":"Pessoas e corpo","ru":"Люди и тело","fr":"Personnes et corps","tr":"İnsan들 & vücut","id":"Orang & tubuh","hi":"लोग व शरीर","de":"Personen & Körper"},
+    "Animals & Nature":{"ko":"동물 & 자연","ja":"動物・自然","zh-cn":"动物与自然","zh-tw":"動物與自然","en":"Animals & Nature","es":"Animales y naturaleza","ar":"الحيوانات والطبيعة","pt":"Animais e natureza","ru":"Животные и природа","fr":"Animaux et nature","tr":"Hayvanlar & doğa","id":"Hewan & alam","hi":"जानवर व प्रकृति","de":"Tiere & Natur"},
+    "Food & Drink":{"ko":"음식 & 음료","ja":"食べ物・飲み物","zh-cn":"食物与饮品","zh-tw":"食物與飲品","en":"Food & Drink","es":"Comida y bebida","ar":"الطعام والشراب","pt":"Comida e bebida","ru":"Еда и напитки","fr":"Nourriture & boissons","tr":"Yiyecek & içecek","id":"Makanan & minuman","hi":"भोजन & पेय","de":"Essen & Trinken"},
+    "Travel & Places":{"ko":"여행 & 장소","ja":"旅行・場所","zh-cn":"旅行与地点","zh-tw":"旅行與地點","en":"Travel & Places","es":"Viajes y lugares","ar":"السفر والأماكن","pt":"Viagens e lugares","ru":"Путешествия и места","fr":"Voyages & lieux","tr":"Seyahat & yerler","id":"Perjalanan & tempat","hi":"यात्रा & स्थान","de":"Reisen & Orte"},
+    "Activities":{"ko":"활동","ja":"アクティビティ","zh-cn":"活动","zh-tw":"活動","en":"Activities","es":"Actividades","ar":"أنشطة","pt":"Atividades","ru":"Активности","fr":"Activités","tr":"Aktiviteler","id":"Aktivitas","hi":"गतिविधियाँ","de":"Aktivitäten"},
+    "Objects":{"ko":"사물","ja":"物・道具","zh-cn":"物品","zh-tw":"物品","en":"Objects","es":"Objetos","ar":"أشياء","pt":"Objetos","ru":"Предметы","fr":"Objets","tr":"Nesneler","id":"Objek","hi":"वस्तुएँ","de":"Objekte"},
+    "Symbols":{"ko":"기호","ja":"記号","zh-cn":"符号","zh-tw":"符號","en":"Symbols","es":"Símbolos","ar":"رموز","pt":"Símbolos","ru":"Символы","fr":"Symboles","tr":"Semboller","id":"Simbol","hi":"प्रतीक","de":"Symbole"},
+    "Flags":{"ko":"깃발","ja":"旗","zh-cn":"旗帜","zh-tw":"旗幟","en":"Flags","es":"Banderas","ar":"أعلام","pt":"Bandeiras","ru":"Флаги","fr":"Drapeaux","tr":"Bayraklar","id":"Bendera","hi":"झंडे","de":"Flaggen"},
+    "Component":{"ko":"구성요소","ja":"コンポーネント","zh-cn":"组件","zh-tw":"元件","en":"Component","es":"Componente","ar":"مكوّن","pt":"Componente","ru":"Компонент","fr":"Composant","tr":"Bileşen","id":"Komponen","hi":"घटक","de":"Komponente"}
   };
-  const tCat = (en) => (CAT_I18N[en] && (CAT_I18N[en][LC] || CAT_I18N[en]["en"])) || en;
+  const tCat = en => (CAT_I18N[en]&&(CAT_I18N[en][LC]||CAT_I18N[en].en))||en;
 
-  function highlight(text, query){
-    if(!query) return esc(text);
-    const q = toLower(query);
-    const latin = isLatin(q);
-    if(!latin){
-      const set = new Set(q.split(""));
-      let out = ""; for(const ch of text){ out += set.has(toLower(ch)) ? "<mark>"+esc(ch)+"</mark>" : esc(ch); }
-      return out;
-    }else{
-      const tokens = uniq(q.split(/[\s,]+/).filter(Boolean)).sort((a,b)=>b.length-a.length);
-      let html = esc(text);
-      for(const t of tokens){
-        if(!t) continue;
-        const re = new RegExp("("+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig");
-        html = html.replace(re, "<mark>$1</mark>");
-      }
-      return html;
-    }
+  function highlight(text,query){
+    if(!query) return esc(text); const q=toLower(query), latin=isLatin(q);
+    if(!latin){ const set=new Set(q.split("")); let out=""; for(const ch of text){ out+=set.has(toLower(ch))?"<mark>"+esc(ch)+"</mark>":esc(ch);} return out; }
+    const tokens=uniq(q.split(/[\s,]+/).filter(Boolean)).sort((a,b)=>b.length-a.length);
+    let html=esc(text); for(const t of tokens){ const re=new RegExp("("+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig"); html=html.replace(re,"<mark>$1</mark>"); } return html;
   }
-  function groupBy(items, keyFn){
-    const m = new Map();
-    for(const it of items){
-      const k = keyFn(it) || "Uncategorized";
-      if(!m.has(k)) m.set(k, []);
-      m.get(k).push(it);
-    }
-    return m;
-  }
+  function groupBy(items,keyFn){ const m=new Map(); for(const it of items){ const k=keyFn(it)||"Uncategorized"; if(!m.has(k)) m.set(k,[]); m.get(k).push(it);} return m; }
 
-  // 오프스크린을 생략하면서도 점진 렌더
   function renderChunkedByCategory(items, query=""){
-    $list.innerHTML = ""; $zero.style.display = "none";
-    const groups = Array.from(groupBy(items, r=>r.category).entries());
-    let catIdx = 0;
-
+    $list.innerHTML=""; $zero.style.display="none";
+    const groups=Array.from(groupBy(items,r=>r.category).entries()); let catIdx=0;
     function renderNextCategories(){
-      if(catIdx >= groups.length) return;
-      const frag = document.createDocumentFragment();
-
-      for(let c=0; c<CATEGORY_CHUNK && catIdx<groups.length; c++, catIdx++){
-        const [cat, arr] = groups[catIdx];
-        const sec = document.createElement("section");
-        sec.className = "sec";
-        sec.innerHTML = `
-          <div class="cat">${esc(tCat(cat))} <span class="cnt">${arr.length}</span></div>
-          <div class="emojis"></div>`;
-        const grid = sec.querySelector(".emojis");
-
-        let start = 0;
+      if(catIdx>=groups.length) return;
+      const frag=document.createDocumentFragment();
+      for(let c=0;c<CATEGORY_CHUNK && catIdx<groups.length;c++,catIdx++){
+        const [cat,arr]=groups[catIdx];
+        const sec=document.createElement("section"); sec.className="sec";
+        sec.innerHTML=`<div class="cat">${esc(tCat(cat))} <span class="cnt">${arr.length}</span></div><div class="emojis"></div>`;
+        const grid=sec.querySelector(".emojis");
+        let start=0;
         function renderEmojiChunk(){
-          const end = Math.min(start + EMOJI_CHUNK, arr.length);
-          const slice = arr.slice(start, end);
-          const inner = slice.map(r => {
-            const title = esc(r.name || "");
-            const nm = query ? `<div class="nm">${highlight(r.name || "", query)}</div>` : "";
-            const kw = (query && r.safeKo) ? `<div class="kw">${highlight(r.safeKo, query)}</div>` : "";
-            // data-emoji + data-code 내려주어 Twemoji/스프라이트 즉시 칠하기
-            return `
-              <div class="e" data-emoji="${esc(r.emoji||'')}" data-code="${esc(r.code||'')}" title="${title}">
-                <span class="glyph"></span>
-                ${ (nm || kw) ? `<div class="d">${nm}${kw}</div>` : "" }
-              </div>`;
+          const end=Math.min(start+EMOJI_CHUNK,arr.length); const slice=arr.slice(start,end);
+          const inner=slice.map(r=>{
+            const title=esc(r.name||""); const nm=query?`<div class="nm">${highlight(r.name||"",query)}</div>`:""; const kw=(query&&r.safeKo)?`<div class="kw">${highlight(r.safeKo,query)}</div>`:"";
+            return `<div class="e" data-emoji="${esc(r.emoji||'')}" data-code="${esc(r.code||'')}" title="${title}"><span class="glyph"></span>${(nm||kw)?`<div class="d">${nm}${kw}</div>`:""}</div>`;
           }).join("");
-          const tmp = document.createElement("div");
-          tmp.innerHTML = inner;
-          while(tmp.firstChild) grid.appendChild(tmp.firstChild);
-
-          // 방금 붙인 타일에 컬러 이미지/스프라이트 칠하기
+          const tmp=document.createElement("div"); tmp.innerHTML=inner; while(tmp.firstChild) grid.appendChild(tmp.firstChild);
           paintNewGlyphs(grid);
-
-          start = end;
-          if(start < arr.length) {
-            (window.requestIdleCallback||window.setTimeout)(renderEmojiChunk, {timeout: 80});
-          }
+          start=end; if(start<arr.length) rIC(renderEmojiChunk);
         }
-        renderEmojiChunk();
-        frag.appendChild(sec);
-
-        /* 섹션 N개마다 광고 삽입 (지금은 disabled) */
-        if (ADS?.enabled && ((catIdx % ADS.every) === 0)) {
-          const ad = document.createElement('div');
-          ad.innerHTML = (ADS.type === 'adsense') ? ADS.adsenseHTML : ADS.houseHTML;
-          frag.appendChild(ad.firstElementChild);
-          if (ADS.type === 'adsense' && window.adsbygoogle) {
-            try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e){}
-          }
-        }
+        renderEmojiChunk(); frag.appendChild(sec);
       }
-      $list.appendChild(frag);
-      if(catIdx < groups.length){
-        (window.requestIdleCallback||window.setTimeout)(renderNextCategories, {timeout: 80});
-      }
+      $list.appendChild(frag); if(catIdx<groups.length) rIC(renderNextCategories);
     }
     renderNextCategories();
   }
 
-  /** ====== 클릭 → 클립보드 복사 + 복사창에 25px 이모지 누적 ====== */
+  /* 복사 → 복사창 칩 */
   const copybar = document.getElementById("copybar");
-  document.addEventListener("click", async (ev) => {
-    const tile = ev.target.closest(".e");
-    if(!tile) return;
-    const emoji = tile.getAttribute("data-emoji") || "";
-    const code  = tile.getAttribute("data-code")  || "";
-    if(!emoji && !code) return;
-
-    try{ await navigator.clipboard.writeText(emoji || ''); }catch(e){}
-
-    // 컬러 칩 누적 (Twemoji/스프라이트 동일 규칙)
-    const chip = document.createElement("span");
-    chip.className = "copyglyph";
-    const url = emojiURL(code, emoji);
-    if (url) {
-      chip.style.backgroundImage = `url(${url})`;
-    } else {
-      chip.textContent = emoji || '⬜';
-    }
+  document.addEventListener("click", async (ev)=>{
+    const tile=ev.target.closest(".e"); if(!tile) return;
+    const emoji=tile.getAttribute("data-emoji")||"", code=tile.getAttribute("data-code")||"";
+    try{ await navigator.clipboard.writeText(emoji||''); }catch(e){}
+    const chip=document.createElement("span"); chip.className="copyglyph";
+    const url=emojiURL(code, emoji); if(url) chip.style.backgroundImage=`url(${url})`; else chip.textContent=emoji||'⬜';
     copybar.appendChild(chip);
   });
 
-  // i18n 텍스트 적용(중복 호출 방지)
-  (function applyI18N(){
-    const q = document.getElementById("q");
-    q.placeholder = (I18N_TEXT.placeholder[LC] || I18N_TEXT.placeholder.en) + "…";
-    document.getElementById("copyhint").textContent = I18N_TEXT.copyHint[LC] || I18N_TEXT.copyHint.en;
-  })();
-
-  /** ====== SW 등록(같은 출처 정적만 캐시) ====== */
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(()=>{});
-  }
+  /* SW 등록 */
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(()=>{}); }
   </script>
 </body>
 </html>
