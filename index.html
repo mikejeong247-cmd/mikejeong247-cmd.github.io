@@ -8,6 +8,9 @@
   <!-- 네트워크 핸드셰이크 단축 -->
   <link rel="dns-prefetch" href="https://docs.google.com">
   <link rel="preconnect" href="https://docs.google.com" crossorigin>
+  <!-- Twemoji CDN 선연결(컬러 이미지 렌더) -->
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
   <style>
     :root{
@@ -45,7 +48,11 @@
       display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px
     }
     .copyhint{width:100%;color:#666;font-size:12px}
-    .copyglyph{font-size:25px;line-height:1}
+    .copyglyph{
+      display:inline-block;width:25px;height:25px;
+      background-size:contain;background-repeat:no-repeat;background-position:center;
+      line-height:1;border-radius:4px;border:1px solid #eee;
+    }
 
     /* 카테고리 섹션: 오프스크린 렌더 스킵 */
     #list{display:block}
@@ -79,11 +86,11 @@
       cursor:pointer; user-select:none;
     }
     .glyph{
-      display:block;
+      display:inline-block;
       width:var(--emoji-size); height:var(--emoji-size);
-      line-height:var(--emoji-size);
-      font-size:var(--emoji-size);
-      text-align:center;
+      /* 텍스트 대신 배경이미지로 칠함(컬러 100%) */
+      background-size:contain; background-repeat:no-repeat; background-position:center;
+      line-height:var(--emoji-size); font-size:var(--emoji-size); text-align:center;
     }
 
     /* name/keywords: 검색 때만 보임 (Compact에선 기본 감춤) */
@@ -97,7 +104,22 @@
     mark{background:#fff2a8;padding:0 .5px;border-radius:2px}
 
     .zero{margin-top:12px;color:#666;text-align:center}
+
+    /* 광고 슬롯(섹션 N개마다) */
+    .ad-slot{
+      width:600px;height:280px;margin:24px auto;border:1px solid #eee;border-radius:8px;
+      display:flex;align-items:center;justify-content:center;color:#999;font-size:12px;background:#fafafa
+    }
+
+    /* RTL (아랍어/히브리어 등) */
+    html[dir="rtl"] .cat{ direction:rtl }
+    html[dir="rtl"] .emojis{ direction:rtl }
   </style>
+
+  <!-- (선택) AdSense: 사용할 경우, 아래 한 줄을 <head> 안에 1회 삽입 후 ADS.type='adsense'로 변경 -->
+  <!--
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+  -->
 </head>
 <body>
   <div class="toolbar">
@@ -116,12 +138,14 @@
   <div id="list"></div>
   <div id="zero" class="zero" style="display:none;">결과가 없습니다.</div>
 
+  <!-- CSV 파서 -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
   <script>
   /** ====== 설정 ====== */
 
   // 1) BUILD 시트를 CSV로 공개한 최종 주소로 교체하세요.
-  const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1543598799&single=true&output=csv";
+  const DATA_URL = "PUT_YOUR_GOOGLE_SHEETS_BUILD_CSV_URL_HERE";
 
   // 2) 표시 이름 우선순위 — manual_alt > alt > manual > base 순 자동 보강
   const NAME_FIELDS_BASE = [
@@ -141,13 +165,35 @@
   // 4) 검색/정렬 파라미터 — 전부 노출(렌더는 청크로)
   const MAX_RESULTS = Infinity;
   const SCORE = { nameHit: 3, tokenHit: 1, categoryHit: 0.5 };
+  // 라틴 최소 토큰 길이 (내일 2→3 상향 검토용 스위치)
+  const MIN_LATIN_TOKEN_LEN = 2;
 
   // 5) 렌더링 최적화 파라미터(느긋하게 뿌리기)
   const CATEGORY_CHUNK = 1;   // 카테고리 섹션 1개씩
   const EMOJI_CHUNK    = 120; // 이모지 120개씩
 
-  /** ====== i18n: 접속 언어 감지 + 문자열/카테고리 현지화 ====== */
+  // 6) 광고(선택): 섹션 N개마다 삽입
+  const ADS = {
+    enabled: true,
+    every: 2,            // 섹션 N개마다 광고 1개
+    type: "house",       // "house" | "adsense"
+    houseHTML: `<div class="ad-slot">Ad slot (600x280)</div>`,
+    adsenseHTML: `
+      <div class="ad-slot">
+        <ins class="adsbygoogle"
+             style="display:block;max-width:600px;width:100%;height:280px"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="YYYYYYYYYY"
+             data-ad-format="auto"></ins>
+      </div>
+      <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>
+    `
+  };
+
+  /** ====== i18n & RTL ====== */
   const rawLang = (navigator.language || "en").toLowerCase();
+  if (/^(ar|fa|ur|he)(-|$)/i.test(rawLang)) { document.documentElement.setAttribute('dir','rtl'); }
+
   const LC = rawLang.startsWith("zh")
     ? (rawLang.includes("tw") || rawLang.includes("hk") ? "zh-tw" : "zh-cn")
     : rawLang.split("-")[0]; // ko, ja, es, ar, pt, ru, fr, tr, id, hi, de, en
@@ -176,34 +222,54 @@
     }
   };
 
-  const CAT_I18N = {
-    "Smileys & Emotion": {"ko":"스마일 & 감정","ja":"スマイル・感情","zh-cn":"表情与情感","zh-tw":"表情與情感","en":"Smileys & Emotion","es":"Caritas y emociones","ar":"الابتسامات والمشاعر","pt":"Carinhas e emoção","ru":"Смайлы и эмоции","fr":"Sourires et émotions","tr":"Yüz ifadeleri ve duygular","id":"Senyum & emosi","hi":"मुस्कान व भावनाएँ","de":"Smileys & Emotionen"},
-    "People & Body": {"ko":"사람 & 몸","ja":"人・体","zh-cn":"人物与身体","zh-tw":"人物與身體","en":"People & Body","es":"Personas y cuerpo","ar":"الأشخاص والجسم","pt":"Pessoas e corpo","ru":"Люди и тело","fr":"Personnes et corps","tr":"İnsanlar ve vücut","id":"Orang & tubuh","hi":"लोग व शरीर","de":"Personen & Körper"},
-    "Animals & Nature": {"ko":"동물 & 자연","ja":"動物・自然","zh-cn":"动物与自然","zh-tw":"動物與自然","en":"Animals & Nature","es":"Animales y naturaleza","ar":"الحيوانات والطبيعة","pt":"Animais e natureza","ru":"Животные и природа","fr":"Animaux et nature","tr":"Hayvanlar ve doğa","id":"Hewan & alam","hi":"जानवर व प्रकृति","de":"Tiere & Natur"},
-    "Food & Drink": {"ko":"음식 & 음료","ja":"食べ物・飲み物","zh-cn":"食物与饮品","zh-tw":"食物與飲品","en":"Food & Drink","es":"Comida y bebida","ar":"الطعام والشراب","pt":"Comida e bebida","ru":"Еда и напитки","fr":"Nourriture & boissons","tr":"Yiyecek & içecek","id":"Makanan & minuman","hi":"भोजन व पेय","de":"Essen & Trinken"},
-    "Travel & Places": {"ko":"여행 & 장소","ja":"旅行・場所","zh-cn":"旅行与地点","zh-tw":"旅行與地點","en":"Travel & Places","es":"Viajes y lugares","ar":"السفر والأماكن","pt":"Viagens e lugares","ru":"Путешествия и места","fr":"Voyages & lieux","tr":"Seyahat & yerler","id":"Perjalanan & tempat","hi":"यात्रा व स्थान","de":"Reisen & Orte"},
-    "Activities": {"ko":"활동","ja":"アクティビティ","zh-cn":"活动","zh-tw":"活動","en":"Activities","es":"Actividades","ar":"أنشطة","pt":"Atividades","ru":"Активности","fr":"Activités","tr":"Aktiviteler","id":"Aktivitas","hi":"गतिविधियाँ","de":"Aktivitäten"},
-    "Objects": {"ko":"사물","ja":"物・道具","zh-cn":"物品","zh-tw":"物品","en":"Objects","es":"Objetos","ar":"أشياء","pt":"Objetos","ru":"Предметы","fr":"Objets","tr":"Nesneler","id":"Objek","hi":"वस्तुएँ","de":"Objekte"},
-    "Symbols": {"ko":"기호","ja":"記号","zh-cn":"符号","zh-tw":"符號","en":"Symbols","es":"Símbolos","ar":"رموز","pt":"Símbolos","ru":"Символы","fr":"Symboles","tr":"Semboller","id":"Simbol","hi":"प्रतीक","de":"Symbole"},
-    "Flags": {"ko":"깃발","ja":"旗","zh-cn":"旗帜","zh-tw":"旗幟","en":"Flags","es":"Banderas","ar":"أعلام","pt":"Bandeiras","ru":"Флаги","fr":"Drapeaux","tr":"Bayraklar","id":"Bendera","hi":"झंडे","de":"Flaggen"},
-    "Component": {"ko":"구성요소","ja":"コンポーネント","zh-cn":"组件","zh-tw":"元件","en":"Component","es":"Componente","ar":"مكوّن","pt":"Componente","ru":"Компонент","fr":"Composant","tr":"Bileşen","id":"Komponen","hi":"घटक","de":"Komponente"}
-  };
-  const tCat = (en) => (CAT_I18N[en] && (CAT_I18N[en][LC] || CAT_I18N[en]["en"])) || en;
-
-  /** ====== 유틸 ====== */
-  const rmDiacritics = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-  const toLower = s => rmDiacritics(String(s||"")).toLowerCase();
-  const splitLatin = s => toLower(s).split(/[^a-z0-9]+/).filter(t=>t.length>1); // 라틴: 2자 이상 토큰
-  const uniq = arr => [...new Set(arr)];
-  const isLatin = s => /^[a-z0-9\s,._-]+$/i.test(rmDiacritics(s||""));
-  const esc = s => (s||"").replace(/[&<>"]/g, m=>({ "&":"&amp;","<":"&lt;","&gt;":"&gt;",'"':"&quot;"}[m]));
-
-  // 검색창 placeholder/복사 힌트 현지화
   (function initI18N(){
     const ph = (I18N_TEXT.placeholder[LC] || I18N_TEXT.placeholder.en) + "…";
     document.getElementById("q").placeholder = ph;
     document.getElementById("copyhint").textContent = I18N_TEXT.copyHint[LC] || I18N_TEXT.copyHint.en;
   })();
+
+  /** ====== 유틸 ====== */
+  const rmDiacritics = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const toLower = s => rmDiacritics(String(s||"")).toLowerCase();
+  const splitLatin = s => toLower(s).split(/[^a-z0-9]+/).filter(t=>t.length>=MIN_LATIN_TOKEN_LEN);
+  const uniq = arr => [...new Set(arr)];
+  const isLatin = s => /^[a-z0-9\s,._-]+$/i.test(rmDiacritics(s||""));
+  const esc = s => (s||"").replace(/[&<>"]/g, m=>({ "&":"&amp;","<":"&lt;","&gt;":"&gt;",'"':"&quot;"}[m]));
+
+  /** ====== 컬러 100% 보장: Twemoji 이미지 렌더 ====== */
+  const USE_TWEMOJI = true; // 항상 컬러
+  const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14/assets';
+  const TWEMOJI_EXT  = 'svg'; // 'svg' | '72x72' (png)
+
+  function emojiURL(hexCode) {
+    if (!hexCode) return '';
+    const f = String(hexCode).toLowerCase(); // 예: "1f60a" 또는 "1f469-200d-1f4bb"
+    return (TWEMOJI_EXT === 'svg')
+      ? `${TWEMOJI_BASE}/svg/${f}.svg`
+      : `${TWEMOJI_BASE}/72x72/${f}.png`;
+  }
+  function paintGlyphEl(el, code, emojiText) {
+    if (USE_TWEMOJI && code) {
+      const url = emojiURL(code);
+      el.textContent = '';
+      el.style.backgroundImage    = `url(${url})`;
+      el.style.backgroundSize     = 'contain';
+      el.style.backgroundRepeat   = 'no-repeat';
+      el.style.backgroundPosition = 'center';
+      el.style.display            = 'inline-block';
+    } else {
+      // 폴백(폰트) — 브라우저별 컬러 미보장
+      el.textContent = emojiText || '⬜';
+      el.style.backgroundImage = '';
+    }
+  }
+  function paintNewGlyphs(container){
+    container.querySelectorAll('.e:not([data-painted])').forEach(tile=>{
+      const g = tile.querySelector('.glyph');
+      paintGlyphEl(g, tile.getAttribute('data-code'), tile.getAttribute('data-emoji'));
+      tile.setAttribute('data-painted','1');
+    });
+  }
 
   /** ====== 데이터 로드 (SAFE-only + *_alt 자동흡수) ====== */
   let rows = [];
@@ -251,11 +317,13 @@
   };
 
   (async function load(){
-    const resp = await fetch(DATA_URL, { cache:"default", mode:"cors" });
+    const resp = await fetch(
+      DATA_URL + (DATA_URL.includes('?') ? '&' : '?') + 't=' + Date.now(),
+      { cache:"no-cache", mode:"cors" } // 최신 CSV 강제
+    );
     if(!resp.ok) { console.error("CSV 실패", resp.status); return; }
     const csv = await resp.text();
 
-    // 워커 파싱 (Papa의 worker 옵션도 가능하지만, 여기선 메인에서 파싱 → 인덱스는 워커)
     const parsed = Papa.parse(csv, { header:true, skipEmptyLines:true });
 
     const normRow = row => { const o={}; for(const k in row){ o[String(k||"").trim().toLowerCase()] = row[k]; } return o; };
@@ -284,7 +352,7 @@
       const safeKo = r["keywords_ko_safe"] || r["keywords_ko_safe_alt"] || "";
 
       return {
-        id: r.id, category: r.category || "", code: r.code || "", emoji: r.emoji || "",
+        id: r.id, category: r.category || "", code: (r.code||"").toLowerCase(), emoji: r.emoji || "",
         name, name_en: r["name_en"] || "",
         idxChars, idxLatinTokens,
         safeKo
@@ -370,6 +438,20 @@
   }
 
   /** ====== 렌더(청크) & 하이라이트 & 카테고리 i18n ====== */
+  const CAT_I18N = {
+    "Smileys & Emotion": {"ko":"스마일 & 감정","ja":"スマイル・感情","zh-cn":"表情与情感","zh-tw":"表情與情感","en":"Smileys & Emotion","es":"Caritas y emociones","ar":"الابتسامات والمشاعر","pt":"Carinhas e emoção","ru":"Смайлы и эмоции","fr":"Sourires et émotions","tr":"Yüz ifadeleri ve duygular","id":"Senyum & emosi","hi":"मुस्कान व भावनाएँ","de":"Smileys & Emotionen"},
+    "People & Body": {"ko":"사람 & 몸","ja":"人・体","zh-cn":"人物与身体","zh-tw":"人物與身體","en":"People & Body","es":"Personas y cuerpo","ar":"الأشخاص والجسم","pt":"Pessoas e corpo","ru":"Люди и тело","fr":"Personnes et corps","tr":"İnsanlar ve vücut","id":"Orang & tubuh","hi":"लोग व शरीर","de":"Personen & Körper"},
+    "Animals & Nature": {"ko":"동물 & 자연","ja":"動物・自然","zh-cn":"动物与自然","zh-tw":"動物與自然","en":"Animals & Nature","es":"Animales y naturaleza","ar":"الحيوانات والطبيعة","pt":"Animais e natureza","ru":"Животные и природа","fr":"Animaux et nature","tr":"Hayvanlar ve doğa","id":"Hewan & alam","hi":"जानवर व प्रकृति","de":"Tiere & Natur"},
+    "Food & Drink": {"ko":"음식 & 음료","ja":"食べ物・飲み物","zh-cn":"食物与饮品","zh-tw":"食物與飲品","en":"Food & Drink","es":"Comida y bebida","ar":"الطعام والشراب","pt":"Comida e bebida","ru":"Еда и напитки","fr":"Nourriture & boissons","tr":"Yiyecek & içecek","id":"Makanan & minuman","hi":"भोजन व पेय","de":"Essen & Trinken"},
+    "Travel & Places": {"ko":"여행 & 장소","ja":"旅行・場所","zh-cn":"旅行与地点","zh-tw":"旅行與地點","en":"Travel & Places","es":"Viajes y lugares","ar":"السفر والأماكن","pt":"Viagens e lugares","ru":"Путешествия и места","fr":"Voyages & lieux","tr":"Seyahat & yerler","id":"Perjalanan & tempat","hi":"यात्रा व स्थान","de":"Reisen & Orte"},
+    "Activities": {"ko":"활동","ja":"アクティビティ","zh-cn":"活动","zh-tw":"活動","en":"Activities","es":"Actividades","ar":"أنشطة","pt":"Atividades","ru":"Активности","fr":"Activités","tr":"Aktiviteler","id":"Aktivitas","hi":"गतिविधियाँ","de":"Aktivitäten"},
+    "Objects": {"ko":"사물","ja":"物・道具","zh-cn":"物品","zh-tw":"物品","en":"Objects","es":"Objetos","ar":"أشياء","pt":"Objetos","ru":"Предметы","fr":"Objets","tr":"Nesneler","id":"Objek","hi":"वस्तुएँ","de":"Objekte"},
+    "Symbols": {"ko":"기호","ja":"記号","zh-cn":"符号","zh-tw":"符號","en":"Symbols","es":"Símbolos","ar":"رموز","pt":"Símbolos","ru":"Символы","fr":"Symboles","tr":"Semboller","id":"Simbol","hi":"प्रतीक","de":"Symbole"},
+    "Flags": {"ko":"깃발","ja":"旗","zh-cn":"旗帜","zh-tw":"旗幟","en":"Flags","es":"Banderas","ar":"أعلام","pt":"Bandeiras","ru":"Флаги","fr":"Drapeaux","tr":"Bayraklar","id":"Bendera","hi":"झंडे","de":"Flaggen"},
+    "Component": {"ko":"구성요소","ja":"コンポーネント","zh-cn":"组件","zh-tw":"元件","en":"Component","es":"Componente","ar":"مكوّن","pt":"Componente","ru":"Компонент","fr":"Composant","tr":"Bileşen","id":"Komponen","hi":"घटक","de":"Komponente"}
+  };
+  const tCat = (en) => (CAT_I18N[en] && (CAT_I18N[en][LC] || CAT_I18N[en]["en"])) || en;
+
   function highlight(text, query){
     if(!query) return esc(text);
     const q = toLower(query);
@@ -389,7 +471,6 @@
       return html;
     }
   }
-
   function groupBy(items, keyFn){
     const m = new Map();
     for(const it of items){
@@ -427,15 +508,20 @@
             const title = esc(r.name || "");
             const nm = query ? `<div class="nm">${highlight(r.name || "", query)}</div>` : "";
             const kw = (query && r.safeKo) ? `<div class="kw">${highlight(r.safeKo, query)}</div>` : "";
+            // data-emoji + data-code 내려주어 Twemoji 즉시 칠하기
             return `
-              <div class="e" data-emoji="${esc(r.emoji||'')}" title="${title}">
-                <span class="glyph">${esc(r.emoji || "⬜")}</span>
+              <div class="e" data-emoji="${esc(r.emoji||'')}" data-code="${esc(r.code||'')}" title="${title}">
+                <span class="glyph"></span>
                 ${ (nm || kw) ? `<div class="d">${nm}${kw}</div>` : "" }
               </div>`;
           }).join("");
           const tmp = document.createElement("div");
           tmp.innerHTML = inner;
           while(tmp.firstChild) grid.appendChild(tmp.firstChild);
+
+          // 방금 붙인 타일에 컬러 이미지 칠하기
+          paintNewGlyphs(grid);
+
           start = end;
           if(start < arr.length) {
             requestIdleCallback(renderEmojiChunk, {timeout: 80}); // 여유 있게
@@ -443,6 +529,16 @@
         }
         renderEmojiChunk();
         frag.appendChild(sec);
+
+        /* 섹션 N개마다 광고 삽입 */
+        if (ADS?.enabled && ((catIdx % ADS.every) === 0)) {
+          const ad = document.createElement('div');
+          ad.innerHTML = (ADS.type === 'adsense') ? ADS.adsenseHTML : ADS.houseHTML;
+          frag.appendChild(ad.firstElementChild);
+          if (ADS.type === 'adsense' && window.adsbygoogle) {
+            try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e){}
+          }
+        }
       }
       $list.appendChild(frag);
       if(catIdx < groups.length){
@@ -457,20 +553,31 @@
   document.addEventListener("click", async (ev) => {
     const tile = ev.target.closest(".e");
     if(!tile) return;
-    const emoji = tile.getAttribute("data-emoji") || tile.querySelector(".glyph")?.textContent || "";
-    if(!emoji) return;
-    try{ await navigator.clipboard.writeText(emoji); }catch(e){}
-    const span = document.createElement("span");
-    span.className = "copyglyph"; span.textContent = emoji;
-    copybar.appendChild(span);
+    const emoji = tile.getAttribute("data-emoji") || "";
+    const code  = tile.getAttribute("data-code")  || "";
+    if(!emoji && !code) return;
+
+    try{ await navigator.clipboard.writeText(emoji || ''); }catch(e){}
+
+    // 컬러 칩 누적
+    const chip = document.createElement("span");
+    chip.className = "copyglyph";
+    chip.style.backgroundImage = code ? `url(${emojiURL(code)})` : '';
+    if(!code) chip.textContent = emoji || '⬜'; // 폴백
+    copybar.appendChild(chip);
   });
 
-  // i18n 텍스트 적용
+  // i18n 텍스트 적용(중복 호출 방지)
   (function applyI18N(){
     const q = document.getElementById("q");
     q.placeholder = (I18N_TEXT.placeholder[LC] || I18N_TEXT.placeholder.en) + "…";
     document.getElementById("copyhint").textContent = I18N_TEXT.copyHint[LC] || I18N_TEXT.copyHint.en;
   })();
+
+  /** ====== SW 등록(같은 출처 정적만 캐시) ====== */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  }
   </script>
 </body>
 </html>
