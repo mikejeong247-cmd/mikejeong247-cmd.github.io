@@ -59,7 +59,7 @@
     .sec{
       margin:0 0 var(--cat-gap-between);
       content-visibility:auto;                 /* 뷰포트 밖 렌더 생략 */
-      contain-intrinsic-size: 1200px;          /* 대충의 예상 높이(LS 예방) */
+      contain-intrinsic-size: 1200px;          /* 대충의 예상 높이(레이아웃 점프 예방) */
     }
     .cat{
       font-weight:700;font-size:20px;
@@ -105,7 +105,7 @@
 
     .zero{margin-top:12px;color:#666;text-align:center}
 
-    /* 광고 슬롯(섹션 N개마다) */
+    /* 광고 슬롯(섹션 N개마다) — Q2 반영: 기본 숨김 */
     .ad-slot{
       width:600px;height:280px;margin:24px auto;border:1px solid #eee;border-radius:8px;
       display:flex;align-items:center;justify-content:center;color:#999;font-size:12px;background:#fafafa
@@ -136,6 +136,7 @@
   </div>
 
   <div id="list"></div>
+  <div id="loading" class="zero" style="display:none;">데이터 불러오는 중…</div>
   <div id="zero" class="zero" style="display:none;">결과가 없습니다.</div>
 
   <!-- CSV 파서 -->
@@ -144,7 +145,7 @@
   <script>
   /** ====== 설정 ====== */
 
-  // 1) BUILD 시트를 CSV로 공개한 최종 주소로 교체하세요.
+  // ⛳ 1) BUILD 시트를 CSV로 공개한 최종 주소로 교체하세요.
   const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1543598799&single=true&output=csv";
 
   // 2) 표시 이름 우선순위 — manual_alt > alt > manual > base 순 자동 보강
@@ -165,16 +166,16 @@
   // 4) 검색/정렬 파라미터 — 전부 노출(렌더는 청크로)
   const MAX_RESULTS = Infinity;
   const SCORE = { nameHit: 3, tokenHit: 1, categoryHit: 0.5 };
-  // 라틴 최소 토큰 길이 (내일 2→3 상향 검토용 스위치)
-  const MIN_LATIN_TOKEN_LEN = 2;
+  // ✅ Q3 외 항목 반영: 라틴 노이즈 완화 → 최소 토큰 길이 3자
+  const MIN_LATIN_TOKEN_LEN = 3;
 
   // 5) 렌더링 최적화 파라미터(느긋하게 뿌리기)
   const CATEGORY_CHUNK = 1;   // 카테고리 섹션 1개씩
   const EMOJI_CHUNK    = 120; // 이모지 120개씩
 
-  // 6) 광고(선택): 섹션 N개마다 삽입
+  // 6) 광고(선택): 섹션 N개마다 삽입 — ✅ Q2 반영: 기본 비활성화
   const ADS = {
-    enabled: true,
+    enabled: false,      // ← 광고 숨김
     every: 2,            // 섹션 N개마다 광고 1개
     type: "house",       // "house" | "adsense"
     houseHTML: `<div class="ad-slot">Ad slot (600x280)</div>`,
@@ -236,33 +237,78 @@
   const isLatin = s => /^[a-z0-9\s,._-]+$/i.test(rmDiacritics(s||""));
   const esc = s => (s||"").replace(/[&<>"]/g, m=>({ "&":"&amp;","<":"&lt;","&gt;":"&gt;",'"':"&quot;"}[m]));
 
-  /** ====== 컬러 100% 보장: Twemoji 이미지 렌더 ====== */
-  const USE_TWEMOJI = true; // 항상 컬러
+  /** ====== 컬러 100% 보장 + 스프라이트 자동 감지 (Q1+Q3) ====== */
   const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14/assets';
   const TWEMOJI_EXT  = 'svg'; // 'svg' | '72x72' (png)
 
-  function emojiURL(hexCode) {
-    if (!hexCode) return '';
-    const f = String(hexCode).toLowerCase(); // 예: "1f60a" 또는 "1f469-200d-1f4bb"
+  // 스프라이트 자동 감지(있으면 사용)
+  let RENDERER_MODE = 'sprite';           // 기본 스프라이트 시도
+  const SPRITE_CDN_BASE = '/sprites';     // /sprites/SPRITE_MAP.json 이 있으면 가속
+  let SPRITE_MAP = null;
+
+  async function ensureSpriteMap(){
+    try {
+      const res = await fetch(`${SPRITE_CDN_BASE}/SPRITE_MAP.json?ts=${Date.now()}`, {cache:'no-cache'});
+      if(res.ok){ SPRITE_MAP = await res.json(); RENDERER_MODE = 'sprite'; }
+      else { RENDERER_MODE = 'cdn'; }
+    } catch(e){ RENDERER_MODE = 'cdn'; }
+  }
+
+  // Twemoji 파일명 규칙 자동 변환 + 실패 시 폰트 폴백
+  function normalizeCodeForTwemoji(code, emojiText){
+    let f = (code || '').toLowerCase().trim();
+    // 예: U+1F60A / 1F469 200D 1F4BB / 1f60a → 하이픈 연결
+    f = f.replace(/u\+/gi,'').replace(/\s+/g,'-').replace(/_/g,'-');
+    const valid = /^[0-9a-f]+(-[0-9a-f]+)*$/.test(f);
+    if (!valid || !f) {
+      if (emojiText) {
+        const cps = [];
+        for (const ch of emojiText) cps.push(ch.codePointAt(0).toString(16));
+        f = cps.join('-');
+      } else {
+        f = '';
+      }
+    }
+    return f;
+  }
+
+  function emojiURL(code, emojiText) {
+    const f = normalizeCodeForTwemoji(code, emojiText);
+    if (!f) return '';
     return (TWEMOJI_EXT === 'svg')
       ? `${TWEMOJI_BASE}/svg/${f}.svg`
       : `${TWEMOJI_BASE}/72x72/${f}.png`;
   }
+
   function paintGlyphEl(el, code, emojiText) {
-    if (USE_TWEMOJI && code) {
-      const url = emojiURL(code);
+    const f = normalizeCodeForTwemoji(code, emojiText);
+    // 1) 스프라이트 우선
+    if (RENDERER_MODE==='sprite' && SPRITE_MAP && SPRITE_MAP[f]){
+      const m = SPRITE_MAP[f]; // {sheet,x,y,w,h}
       el.textContent = '';
-      el.style.backgroundImage    = `url(${url})`;
-      el.style.backgroundSize     = 'contain';
-      el.style.backgroundRepeat   = 'no-repeat';
-      el.style.backgroundPosition = 'center';
-      el.style.display            = 'inline-block';
-    } else {
-      // 폴백(폰트) — 브라우저별 컬러 미보장
-      el.textContent = emojiText || '⬜';
-      el.style.backgroundImage = '';
+      el.style.backgroundImage = `url(${SPRITE_CDN_BASE}/${m.sheet})`;
+      el.style.backgroundPosition = `-${m.x}px -${m.y}px`;
+      el.style.backgroundSize = `auto`;
+      el.style.display = 'inline-block';
+      return;
     }
+    // 2) Twemoji CDN
+    const url = emojiURL(f, emojiText);
+    if (!url) { el.textContent = emojiText || '⬜'; el.style.backgroundImage=''; return; }
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      el.textContent = '';
+      el.style.backgroundImage = `url(${url})`;
+      el.style.backgroundSize = 'contain';
+      el.style.backgroundRepeat = 'no-repeat';
+      el.style.backgroundPosition = 'center';
+      el.style.display = 'inline-block';
+    };
+    img.onerror = () => { el.textContent = emojiText || '⬜'; el.style.backgroundImage=''; };
+    img.src = url;
   }
+
   function paintNewGlyphs(container){
     container.querySelectorAll('.e:not([data-painted])').forEach(tile=>{
       const g = tile.querySelector('.glyph');
@@ -313,22 +359,38 @@
       tokenIndex = e.data.tokenIndex||{};
       ready = true;
       renderChunkedByCategory(rows);  // 첫 화면: 점진 렌더 시작
+      document.getElementById("loading").style.display="none";
     }
   };
 
   (async function load(){
+    document.getElementById("loading").style.display="block";
+    // 스프라이트 감지 먼저 시도(있으면 곧바로 가속)
+    await ensureSpriteMap();
+
     const resp = await fetch(
       DATA_URL + (DATA_URL.includes('?') ? '&' : '?') + 't=' + Date.now(),
       { cache:"no-cache", mode:"cors" } // 최신 CSV 강제
     );
-    if(!resp.ok) { console.error("CSV 실패", resp.status); return; }
+    if(!resp.ok) {
+      document.getElementById("loading").style.display="none";
+      const z=document.getElementById("zero");
+      z.style.display="block"; z.textContent = "CSV 로드 실패: " + resp.status + " (DATA_URL 확인)";
+      console.error("CSV 실패", resp.status, DATA_URL);
+      return;
+    }
     const csv = await resp.text();
 
     const parsed = Papa.parse(csv, { header:true, skipEmptyLines:true });
 
     const normRow = row => { const o={}; for(const k in row){ o[String(k||"").trim().toLowerCase()] = row[k]; } return o; };
     const data = parsed.data.map(normRow);
-    if(!data.length) { console.error("CSV 비어있음"); return; }
+    if(!data.length) {
+      document.getElementById("loading").style.display="none";
+      const z=document.getElementById("zero");
+      z.style.display="block"; z.textContent = "CSV가 비어있습니다.";
+      return;
+    }
 
     const headers = Object.keys(data[0] || {});
     const expandVariants = (baseList) => {
@@ -508,7 +570,7 @@
             const title = esc(r.name || "");
             const nm = query ? `<div class="nm">${highlight(r.name || "", query)}</div>` : "";
             const kw = (query && r.safeKo) ? `<div class="kw">${highlight(r.safeKo, query)}</div>` : "";
-            // data-emoji + data-code 내려주어 Twemoji 즉시 칠하기
+            // data-emoji + data-code 내려주어 Twemoji/스프라이트 즉시 칠하기
             return `
               <div class="e" data-emoji="${esc(r.emoji||'')}" data-code="${esc(r.code||'')}" title="${title}">
                 <span class="glyph"></span>
@@ -519,18 +581,18 @@
           tmp.innerHTML = inner;
           while(tmp.firstChild) grid.appendChild(tmp.firstChild);
 
-          // 방금 붙인 타일에 컬러 이미지 칠하기
+          // 방금 붙인 타일에 컬러 이미지/스프라이트 칠하기
           paintNewGlyphs(grid);
 
           start = end;
           if(start < arr.length) {
-            requestIdleCallback(renderEmojiChunk, {timeout: 80}); // 여유 있게
+            (window.requestIdleCallback||window.setTimeout)(renderEmojiChunk, {timeout: 80});
           }
         }
         renderEmojiChunk();
         frag.appendChild(sec);
 
-        /* 섹션 N개마다 광고 삽입 */
+        /* 섹션 N개마다 광고 삽입 (지금은 disabled) */
         if (ADS?.enabled && ((catIdx % ADS.every) === 0)) {
           const ad = document.createElement('div');
           ad.innerHTML = (ADS.type === 'adsense') ? ADS.adsenseHTML : ADS.houseHTML;
@@ -542,7 +604,7 @@
       }
       $list.appendChild(frag);
       if(catIdx < groups.length){
-        requestIdleCallback(renderNextCategories, {timeout: 80});
+        (window.requestIdleCallback||window.setTimeout)(renderNextCategories, {timeout: 80});
       }
     }
     renderNextCategories();
@@ -559,11 +621,15 @@
 
     try{ await navigator.clipboard.writeText(emoji || ''); }catch(e){}
 
-    // 컬러 칩 누적
+    // 컬러 칩 누적 (Twemoji/스프라이트 동일 규칙)
     const chip = document.createElement("span");
     chip.className = "copyglyph";
-    chip.style.backgroundImage = code ? `url(${emojiURL(code)})` : '';
-    if(!code) chip.textContent = emoji || '⬜'; // 폴백
+    const url = emojiURL(code, emoji);
+    if (url) {
+      chip.style.backgroundImage = `url(${url})`;
+    } else {
+      chip.textContent = emoji || '⬜';
+    }
     copybar.appendChild(chip);
   });
 
@@ -578,11 +644,6 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(()=>{});
   }
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
-}
-
   </script>
 </body>
 </html>
