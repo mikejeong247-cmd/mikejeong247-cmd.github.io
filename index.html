@@ -6,13 +6,11 @@
   <title>프로 이모지 검색 — 카테고리 보기</title>
   <meta name="description" content="카테고리 상단 유지 · 각 대카테고리 전부 표시 · name_*만 검색" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-
   <style>
     :root{
-      --grid-width: 520px;   /* LCP 최소(필요 시 560px) */
+      --grid-width: 520px;   /* 초기 LCP 최소 (원하면 560px) */
       --tile-size: 72px;
       --gap: 8px;
-
       --cat-table-maxw: 1100px;
       --cat-cell-h: 48px;
       --cat-font: 15px;
@@ -21,17 +19,9 @@
     html, body{ margin:0; padding:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Apple Color Emoji,Noto Color Emoji,sans-serif; }
 
     /* 상단: 검색 + 복사 */
-    #toolbar{
-      position: sticky; top: 0; z-index: 9;
-      background:#fff; border-bottom:1px solid #eee; backdrop-filter: blur(4px);
-    }
-    #toolbar .inner{
-      max-width: var(--cat-table-maxw); margin:0 auto; padding:10px 12px;
-      display:grid; gap:8px; grid-template-columns: 1fr auto; align-items:center;
-    }
-    #search{
-      width:100%; height:40px; border:1px solid #ddd; border-radius:8px; padding:0 12px; font-size:15px;
-    }
+    #toolbar{ position: sticky; top: 0; z-index: 9; background:#fff; border-bottom:1px solid #eee; backdrop-filter: blur(4px); }
+    #toolbar .inner{ max-width: var(--cat-table-maxw); margin:0 auto; padding:10px 12px; display:grid; gap:8px; grid-template-columns: 1fr auto; align-items:center; }
+    #search{ width:100%; height:40px; border:1px solid #ddd; border-radius:8px; padding:0 12px; font-size:15px; }
     #copyBox{ display:flex; gap:8px; align-items:center; }
     #copyOut{ width:160px; height:40px; border:1px solid #ddd; border-radius:8px; padding:0 12px; font-size:16px; }
     #btnCopy{ height:40px; padding:0 14px; border:1px solid #333; background:#111; color:#fff; border-radius:8px; cursor:pointer; }
@@ -41,10 +31,7 @@
     #catTableWrap .inner{ max-width: var(--cat-table-maxw); margin:0 auto; padding:8px 12px; }
     table.cat-table{ width:100%; table-layout:fixed; border-collapse:collapse; font-size:var(--cat-font); }
     table.cat-table td{ padding:0; border:1px solid #f1f1f1; }
-    .cat-btn{
-      width:100%; height:var(--cat-cell-h); display:grid; grid-template-columns:28px 1fr;
-      align-items:center; gap:8px; padding:8px 10px; border:0; background:#fff; cursor:pointer;
-    }
+    .cat-btn{ width:100%; height:var(--cat-cell-h); display:grid; grid-template-columns:28px 1fr; align-items:center; gap:8px; padding:8px 10px; border:0; background:#fff; cursor:pointer; }
     .cat-btn:hover{ background:#fafafa; }
     .cat-btn.active{ outline:2px solid rgba(0,0,0,.08); background:#f9f9ff; }
     .cat-emoji{ width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; font-size:20px; line-height:1; }
@@ -52,29 +39,18 @@
 
     /* 그리드 */
     #gridWrap{ max-width:var(--grid-width); margin:12px auto 60px; padding:0 8px; }
-    #grid{
-      display:grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-size), 1fr));
-      gap:var(--gap); align-items:start;
-    }
-    .tile{
-      width:var(--tile-size); height:var(--tile-size);
-      display:inline-flex; align-items:center; justify-content:center;
-      border-radius:10px; border:1px solid #eee; background:#fff;
-      cursor:pointer; user-select:none; transition:transform .04s ease; will-change: transform;
-    }
+    #grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-size), 1fr)); gap:var(--gap); align-items:start; }
+    .tile{ width:var(--tile-size); height:var(--tile-size); display:inline-flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid #eee; background:#fff; cursor:pointer; user-select:none; transition:transform .04s ease; will-change: transform; }
     .tile:hover{ transform:translateY(-1px); background:#fafafa; }
     .tile img{ width:var(--tile-size); height:var(--tile-size); image-rendering:-webkit-optimize-contrast; }
 
-    /* 토스트 / 상태 / 푸터 */
-    #toast{
-      position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:20;
-      background:rgba(0,0,0,.8); color:#fff; padding:8px 12px; border-radius:20px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease;
-    }
-    #toast.show{ opacity:1; }
+    /* 상태/토스트/라이선스 */
     #status{ max-width:960px; margin:16px auto 0; padding:8px 12px; color:#444; text-align:center; display:none; font-size:14px; }
-
+    #toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:20; background:rgba(0,0,0,.8); color:#fff; padding:8px 12px; border-radius:20px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease; }
+    #toast.show{ opacity:1; }
     #legal{ max-width:var(--cat-table-maxw); margin:24px auto 40px; padding:0 12px; font-size:12px; color:#777; }
     #legal a{ color:inherit; text-decoration:underline; }
+
     @media (max-width: 720px){
       :root{ --cat-font:14px; }
       #toolbar .inner{ grid-template-columns: 1fr; }
@@ -82,11 +58,10 @@
     }
   </style>
 
-  <!-- Twemoji (PNG 강제, SVG OFF) -->
+  <!-- Twemoji (PNG 강제) -->
   <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <!-- 상단: 검색 + 복사 -->
   <header id="toolbar">
     <div class="inner">
       <input id="search" type="search" placeholder="이모지 이름(name_*)으로 검색 (현재 카테고리 내)" />
@@ -97,32 +72,27 @@
     </div>
   </header>
 
-  <!-- 카테고리 표 -->
-  <section id="catTableWrap">
-    <div class="inner">
-      <table class="cat-table" id="catTable"><tbody id="catTbody"></tbody></table>
-    </div>
-  </section>
+  <section id="catTableWrap"><div class="inner">
+    <table class="cat-table"><tbody id="catTbody"></tbody></table>
+  </div></section>
 
-  <!-- 상태/그리드/토스트 -->
   <div id="status"></div>
   <main id="gridWrap"><section id="grid"></section></main>
   <div id="toast">복사 완료!</div>
 
-  <!-- 라이선스(법적 표기) -->
   <footer id="legal">
-    Emoji graphics by <a href="https://twemoji.twitter.com/" target="_blank" rel="noopener">Twemoji</a> © Twitter, licensed under
-    <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Unicode data © The Unicode Consortium.
+    Emoji graphics by <a href="https://twemoji.twitter.com/" target="_blank" rel="noopener">Twemoji</a> © Twitter,
+    licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
+    Unicode data © The Unicode Consortium.
   </footer>
 
-  <!-- 앱 스크립트 -->
   <script type="module">
-    /* ===== 0) 고정/설정 ===== */
+    /* ===== 0) 경로/상수 ===== */
     const BASE = (()=>{ const p=location.pathname.split('/').filter(Boolean); return p.length?`/${p[0]}/`:'/' })();
     const DATA_BASE    = BASE + 'data/';
     const SPRITES_BASE = BASE + 'sprites/';
-    const FIRST_CHUNK = 240, NEXT_CHUNK = 240;      // 카테고리 전량 로드(스크롤 추가)
-    const DEFAULT_PREFS = ["Smileys & Emotion", "스마일/감정"];  // 기본 진입 카테고리
+    const FIRST_CHUNK = 240, NEXT_CHUNK = 240; // 카테고리 전량 로드
+    const DEFAULT_PREFS = ["Smileys & Emotion","스마일/감정"]; // 기본 진입
 
     const UI = {
       search:   document.getElementById('search'),
@@ -134,22 +104,18 @@
       toast:    document.getElementById('toast'),
     };
 
-    const koLabelMap={
-      "Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연",
-      "Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동",
-      "Objects":"사물","Symbols":"기호","Flags":"국기"
-    };
-    const pickLabel=(raw)=>koLabelMap[raw]||raw||"기타";
-    const ensureTwemoji=(el)=>window.twemoji?.parse(el,{ base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png" });
-    const showStatus=(m)=>{ UI.status.style.display='block'; UI.status.innerHTML=m; };
-    const hideStatus=()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
+    const showStatus = (m)=>{ UI.status.style.display='block'; UI.status.innerHTML=m; };
+    const hideStatus = ()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
+    const ensureTwemoji = (el)=> window.twemoji?.parse(el,{ base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png" });
     const showToast=(t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
 
-    const codeToEmoji=(code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
-    const pick=(obj, keys)=>{ for(const k of keys){ if(obj[k]!=null&&obj[k]!=='') return obj[k]; const k2=Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2&&obj[k2]!=null&&obj[k2]!=='') return obj[k2]; } return ''; };
+    const codeToEmoji=(c)=>{ try{ return String.fromCodePoint(...String(c).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
+    const pick=(o,keys)=>{ for(const k of keys){ if(o[k]!=null&&o[k]!=='') return o[k]; const k2=Object.keys(o).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2&&o[k2]!=null&&o[k2]!=='') return o[k2]; } return ''; };
     async function fetchJSON(u){ try{ const r=await fetch(u,{cache:"no-cache"}); if(r.ok) return await r.json(); }catch(_){ } return null; }
 
-    // 리포 정보로 CDN 폴백 경로 생성
+    /* ===== 1) 로더(안1→안2→안3) ===== */
+    let BUILD=null, SPRITE_MAP=null, SUPPORT_HINTS=null, SOURCE_NOTE='';
+
     function repoInfo(){
       const user = location.hostname.replace('.github.io','');
       const parts = location.pathname.split('/').filter(Boolean);
@@ -157,58 +123,70 @@
       return { user, repo };
     }
 
-    /* ===== 1) 데이터 로드 (로컬 → jsDelivr → RAW) ===== */
-    let BUILD=null, SPRITE_MAP=null, SUPPORT_HINTS=null;
     async function loadData(){
       const { user, repo } = repoInfo();
       const branches = ["main","gh-pages","master"];
 
-      const localBuilds  = [ `${DATA_BASE}build.json`, `/data/build.json`, `data/build.json` ];
-      const cdnBuilds    = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/data/build.json`);
-      const rawBuilds    = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/data/build.json`);
+      // 안1: 로컬
+      const buildLocal = [ `${DATA_BASE}build.json`, `/data/build.json`, `data/build.json` ];
+      const spriteLocal= [ `${SPRITES_BASE}SPRITE_MAP.json`, `/sprites/SPRITE_MAP.json`, `sprites/SPRITE_MAP.json` ];
+      const hintsLocal = [ `${SPRITES_BASE}SUPPORT_HINTS.json`, `/sprites/SUPPORT_HINTS.json`, `sprites/SUPPORT_HINTS.json` ];
 
-      const localSprites = [ `${SPRITES_BASE}SPRITE_MAP.json`, `/sprites/SPRITE_MAP.json`, `sprites/SPRITE_MAP.json` ];
-      const cdnSprites   = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SPRITE_MAP.json`);
-      const rawSprites   = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SPRITE_MAP.json`);
-
-      const localHints   = [ `${SPRITES_BASE}SUPPORT_HINTS.json`, `/sprites/SUPPORT_HINTS.json`, `sprites/SUPPORT_HINTS.json` ];
-      const cdnHints     = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SUPPORT_HINTS.json`);
-      const rawHints     = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SUPPORT_HINTS.json`);
+      // 안2: 같은 레포 CDN/RAW
+      const buildCDN = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/data/build.json`);
+      const buildRAW = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/data/build.json`);
+      const sprCDN   = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SPRITE_MAP.json`);
+      const sprRAW   = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SPRITE_MAP.json`);
+      const hintCDN  = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SUPPORT_HINTS.json`);
+      const hintRAW  = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SUPPORT_HINTS.json`);
 
       async function pickJSON(cands, label){
         for(const u of cands){
           try{
-            const r = await fetch(u,{cache:"no-cache"});
-            if(r.ok){ const j=await r.json(); j.__src=u; console.log(`[OK] ${label}:`, u); return j; }
+            const r=await fetch(u,{cache:"no-cache"});
+            if(r.ok){ const j=await r.json(); j.__src=u; console.log(`[OK] ${label}:`,u); return j; }
           }catch(_){}
         }
         return null;
       }
 
-      BUILD       = await pickJSON([...localBuilds, ...cdnBuilds, ...rawBuilds], "build.json");
-      SPRITE_MAP  = await pickJSON([...localSprites, ...cdnSprites, ...rawSprites], "SPRITE_MAP.json");
-      SUPPORT_HINTS = await pickJSON([...localHints, ...cdnHints, ...rawHints], "SUPPORT_HINTS.json");
+      // 1) 로컬 시도
+      BUILD       = await pickJSON(buildLocal,  "build(local)");
+      SPRITE_MAP  = await pickJSON(spriteLocal, "sprite(local)");
+      SUPPORT_HINTS = await pickJSON(hintsLocal,"hints(local)");
+      if(BUILD){ SOURCE_NOTE = `소스: <b>build.json</b> <small>${BUILD.__src||'local'}</small>`; return true; }
 
-      if(!BUILD){
-        showStatus(`/data/build.json이 없습니다. (로컬/CDN/RAW 폴백 모두 실패)`);
-        return false;
-      }
-      hideStatus();
-      return true;
+      // 2) CDN/RAW 시도
+      BUILD       = await pickJSON([...buildCDN, ...buildRAW], "build(cdn/raw)");
+      if(!SPRITE_MAP)  SPRITE_MAP  = await pickJSON([...sprCDN, ...sprRAW], "sprite(cdn/raw)");
+      if(!SUPPORT_HINTS) SUPPORT_HINTS = await pickJSON([...hintCDN, ...hintRAW], "hints(cdn/raw)");
+      if(BUILD){ SOURCE_NOTE = `소스: <b>build.json</b> <small>${BUILD.__src}</small>`; return true; }
+
+      // 3) build 없음 → 스프라이트/샘플로 복구
+      if(!SPRITE_MAP) SPRITE_MAP = await pickJSON([...sprCDN, ...sprRAW, ...spriteLocal], "sprite(any)");
+      if(SPRITE_MAP){ SOURCE_NOTE = `소스: <b>SPRITE_MAP.json</b> <small>${SPRITE_MAP.__src||'local'}</small>`; return false; }
+
+      SOURCE_NOTE = "소스: <b>내장 샘플</b>";
+      return false;
     }
 
-    /* ===== 2) 정규화(name_*만 검색) ===== */
+    /* ===== 2) 정규화 & 카테고리 ===== */
     let ALL_ITEMS=[], CAT_MAP=null, ACTIVE_CAT=null, BASE_LIST=[], VIEW_LIST=[];
+    const koLabelMap = {
+      "Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연",
+      "Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동",
+      "Objects":"사물","Symbols":"기호","Flags":"국기"
+    };
+    const pickLabel=(raw)=>koLabelMap[raw]||raw||"기타";
+
     function normalizeItems(root){
       const out=[]; const seen=new Set();
       function walk(node, inheritedCat=''){
         if(!node) return;
         if(Array.isArray(node)){ for(const v of node) walk(v, inheritedCat); return; }
         if(typeof node!=='object') return;
-
         const groupCat = pick(node, ['group','category','major','cat','section','type']) || inheritedCat;
         if (Array.isArray(node.items)) { for(const v of node.items) walk(v, groupCat); }
-
         const code = pick(node, ['code','hex','u','unified','unicode','codepoint','cp']);
         const emojiChar = node.emoji || (code ? codeToEmoji(code) : '');
         if (emojiChar || code){
@@ -223,7 +201,7 @@
             out.push({
               group: groupCat || pick(node, ['group','category','major','cat']),
               name: primaryName,
-              nameText: [primaryName, ...names].join(' ').trim().toLowerCase(), // 검색 대상
+              nameText: [primaryName, ...names].join(' ').trim().toLowerCase(),
               code: (code||'').toUpperCase(),
               emoji: emojiChar,
               png: pick(node, ['png','pngUrl','url','image','img'])
@@ -236,6 +214,29 @@
       walk(root,'');
       return out;
     }
+
+    function itemsFromSpriteMap(mapObj){
+      const dict = (mapObj && mapObj.sprites) ? mapObj.sprites : mapObj || {};
+      const items=[];
+      for(const [k,v] of Object.entries(dict)){
+        if(k==='sprites' || typeof v!=='object') continue;
+        const code = String(k).toUpperCase();
+        items.push({ group:'전체', name:code, nameText:code.toLowerCase(), code, emoji:codeToEmoji(code) });
+      }
+      return items;
+    }
+
+    function emergencySample(){
+      const s=(g,n,c)=>({group:g,name:n,nameText:n.toLowerCase(),code:c,emoji:codeToEmoji(c)});
+      const A=[ s("Smileys & Emotion","grinning face","1F600"), s("Smileys & Emotion","smiling face","263A"),
+                s("Smileys & Emotion","face with tears of joy","1F602"), s("Smileys & Emotion","heart eyes","1F60D"),
+                s("People & Body","person","1F9D1"), s("Animals & Nature","cat face","1F431"),
+                s("Food & Drink","hamburger","1F354"), s("Activities","soccer ball","26BD"),
+                s("Objects","mobile phone","1F4F1"), s("Symbols","heart","2764"), s("Travel & Places","airplane","2708"), s("Flags","Korea","1F1F0-1F1F7") ];
+      while(A.length<60){ A.push({...A[A.length%12]}); }
+      return A;
+    }
+
     function buildCatMap(items){
       const m=new Map();
       for(const it of items){
@@ -262,14 +263,12 @@
 
           const em=document.createElement("span");
           em.className="cat-emoji";
-          const sample=(catMap.get(cat)||[])[0];
-          em.textContent = sample?.emoji || "😀";
+          const sample=(catMap.get(cat)||[])[0]; em.textContent = sample?.emoji || "😀";
 
           const label=document.createElement("span");
           label.className="cat-label"; label.textContent = pickLabel(cat);
 
-          btn.appendChild(em); btn.appendChild(label);
-          td.appendChild(btn); tr.appendChild(td);
+          btn.appendChild(em); btn.appendChild(label); td.appendChild(btn); tr.appendChild(td);
         }
         while(tr.children.length<columns) tr.appendChild(document.createElement("td"));
         tbody.appendChild(tr);
@@ -281,15 +280,12 @@
       });
     }
 
-    /* ===== 4) 렌더러(스프라이트 > PNG > Twemoji) ===== */
+    /* ===== 4) 렌더러 ===== */
     function hasSprite(it){ return SPRITE_MAP && (SPRITE_MAP[it.code] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[it.code])); }
     function spriteRec(it){ return (SPRITE_MAP && (SPRITE_MAP[it.code] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[it.code]))) || null; }
 
     function makeTile(it){
-      const tile=document.createElement("div");
-      tile.className="tile";
-      tile.title=it.name || it.code || "";
-
+      const tile=document.createElement("div"); tile.className="tile"; tile.title=it.name || it.code || "";
       // 1) 스프라이트
       if(hasSprite(it)){
         const rec=spriteRec(it);
@@ -300,69 +296,46 @@
         tile.style.backgroundPosition=`${bx}px ${by}px`;
         tile.style.backgroundRepeat="no-repeat";
         tile.style.width=bw+"px"; tile.style.height=bh+"px";
-        tile.dataset.emoji=it.emoji;
-        return tile;
+        tile.dataset.emoji=it.emoji; return tile;
       }
-
       // 2) PNG
       if(it.png && !(SUPPORT_HINTS?.block?.includes(it.code))){
-        const img=document.createElement("img");
-        img.loading="lazy"; img.decoding="async";
-        img.src=it.png; img.alt=it.name || it.code || "";
-        tile.appendChild(img);
-        tile.dataset.emoji=it.emoji;
-        return tile;
+        const img=document.createElement("img"); img.loading="lazy"; img.decoding="async";
+        img.src=it.png; img.alt=it.name || it.code || ""; tile.appendChild(img);
+        tile.dataset.emoji=it.emoji; return tile;
       }
-
       // 3) Twemoji PNG(최후)
-      const span=document.createElement("span");
-      span.textContent=it.emoji || "❓";
-      span.style.fontSize="40px";
-      tile.appendChild(span);
-      ensureTwemoji(tile);  // 타일 단위만 파싱
-      tile.dataset.emoji=it.emoji || "";
-      return tile;
+      const span=document.createElement("span"); span.textContent=it.emoji || "❓"; span.style.fontSize="40px";
+      tile.appendChild(span); ensureTwemoji(tile); tile.dataset.emoji=it.emoji || ""; return tile;
     }
 
     function renderListChunked(list){
-      UI.grid.innerHTML="";
-      let idx=0;
+      UI.grid.innerHTML=""; let idx=0;
+      const first=list.slice(0,FIRST_CHUNK); const f1=document.createDocumentFragment();
+      for(const it of first) f1.appendChild(makeTile(it)); UI.grid.appendChild(f1); idx=FIRST_CHUNK;
 
-      // 첫 페인트
-      const first=list.slice(0, FIRST_CHUNK);
-      const f1=document.createDocumentFragment();
-      for(const it of first) f1.appendChild(makeTile(it));
-      UI.grid.appendChild(f1);
-      idx = FIRST_CHUNK;
-
-      // 끝까지 추가
-      const sentinel=document.createElement("div");
-      UI.grid.appendChild(sentinel);
+      const sentinel=document.createElement("div"); UI.grid.appendChild(sentinel);
       const io=new IntersectionObserver((entries)=>{
         if(!entries.some(e=>e.isIntersecting)) return;
         if(idx>=list.length){ io.disconnect(); return; }
-        const part=list.slice(idx, idx+NEXT_CHUNK);
-        const frag=document.createDocumentFragment();
+        const part=list.slice(idx, idx+NEXT_CHUNK); const frag=document.createDocumentFragment();
         for(const it of part) frag.appendChild(makeTile(it));
-        UI.grid.insertBefore(frag, sentinel);
-        idx += NEXT_CHUNK;
-      },{rootMargin:"900px"});
-      io.observe(sentinel);
-
-      showStatus(`카테고리: <b>${pickLabel(ACTIVE_CAT)}</b> · 항목: <b>${list.length.toLocaleString()}</b> · 소스: <small>${(BUILD && BUILD.__src) ? BUILD.__src : 'local'}</small>`);
+        UI.grid.insertBefore(frag, sentinel); idx+=NEXT_CHUNK;
+      },{rootMargin:"900px"}); io.observe(sentinel);
     }
 
     /* ===== 5) 카테고리/검색 ===== */
     function setActiveCategory(cat){
-      ACTIVE_CAT = cat;
+      ACTIVE_CAT=cat;
       document.querySelectorAll(".cat-btn").forEach(b=>b.classList.toggle("active", b.getAttribute("data-cat")===cat));
       BASE_LIST = CAT_MAP.get(cat) || [];
       applySearch();
     }
     function applySearch(){
-      const q = UI.search.value.trim().toLowerCase();
+      const q=UI.search.value.trim().toLowerCase();
       VIEW_LIST = !q ? BASE_LIST : BASE_LIST.filter(it => (it.nameText || it.name || '').includes(q));
       renderListChunked(VIEW_LIST);
+      showStatus(`${SOURCE_NOTE} · 카테고리: <b>${pickLabel(ACTIVE_CAT)}</b> · 항목: <b>${VIEW_LIST.length.toLocaleString()}</b>`);
     }
 
     /* ===== 6) 복사 ===== */
@@ -374,20 +347,25 @@
     /* ===== 7) 부트스트랩 ===== */
     (async function boot(){
       showStatus("데이터 로드 중…");
-      const ok = await loadData();
-      if(!ok) return;
+      const hasBuild = await loadData();
 
-      const root = BUILD.items || BUILD.emojis || BUILD.data || BUILD.rows || BUILD;
-      ALL_ITEMS = normalizeItems(root);
-      if(ALL_ITEMS.length===0){ showStatus("데이터가 비어 있습니다."); return; }
+      if(hasBuild && BUILD){
+        const root = BUILD.items || BUILD.emojis || BUILD.data || BUILD.rows || BUILD;
+        ALL_ITEMS = normalizeItems(root);
+        CAT_MAP = buildCatMap(ALL_ITEMS);
+      }else if(SPRITE_MAP){
+        ALL_ITEMS = itemsFromSpriteMap(SPRITE_MAP);        // ‘전체’만
+        CAT_MAP = buildCatMap(ALL_ITEMS);
+      }else{
+        ALL_ITEMS = emergencySample();                     // 샘플
+        CAT_MAP = buildCatMap(ALL_ITEMS);
+      }
 
-      CAT_MAP = buildCatMap(ALL_ITEMS);
       buildCategoryTable(CAT_MAP);
 
-      // 기본 진입: 스마일/감정 우선, 없으면 첫 카테고리
-      const firstCat = [...CAT_MAP.keys()].find(k => DEFAULT_PREFS.includes(k)) || [...CAT_MAP.keys()][0];
+      // 기본: 스마일/감정 우선, 없으면 첫 카테고리
+      const firstCat = [...CAT_MAP.keys()].find(k=>DEFAULT_PREFS.includes(k)) || [...CAT_MAP.keys()][0];
       setActiveCategory(firstCat);
-      hideStatus();
     })();
 
     /* ===== 8) 이벤트 ===== */
@@ -398,11 +376,7 @@
       UI.copyOut.value = emoji; copyToClipboard(emoji);
     });
     UI.btnCopy.addEventListener('click', ()=>{ const v=UI.copyOut.value||''; if(v) copyToClipboard(v); });
-    window.addEventListener('resize', ()=>{
-      if(!CAT_MAP) return;
-      buildCategoryTable(CAT_MAP);
-      setActiveCategory(ACTIVE_CAT);
-    });
+    window.addEventListener('resize', ()=>{ if(!CAT_MAP) return; buildCategoryTable(CAT_MAP); setActiveCategory(ACTIVE_CAT); });
   </script>
 </body>
 </html>
