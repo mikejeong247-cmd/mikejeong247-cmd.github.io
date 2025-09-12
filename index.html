@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>프로 이모지 검색 — 하이브리드(36개 즉시+더보기)</title>
+  <title>프로 이모지 검색 — 하이브리드(스마일 32개 즉시)</title>
 
   <!-- 성능: 필요한 출처 선연결 -->
   <link rel="preconnect" href="https://docs.google.com" crossorigin>
@@ -50,6 +50,7 @@
 
     /* 카테고리 섹션 */
     .cat-section{ max-width:var(--grid-width); margin:18px auto 44px; padding:0 8px; content-visibility:auto; contain-intrinsic-size:1px 1200px }
+    .cat-section.hidden{ display:none }
     .cat-head{ display:flex; gap:10px; align-items:center; margin-bottom:8px }
     .cat-emo{ font-size:22px }
     .cat-title{ font-size:18px; font-weight:600 }
@@ -58,7 +59,7 @@
     .tile{ width:var(--tile); height:var(--tile); display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:10px; background:#fff; user-select:none; cursor:pointer; transition:transform .04s }
     .tile:hover{ transform:translateY(-1px); background:#fafafa }
 
-    /* 스켈레톤 */
+    /* 스켈레톤(초기 페인트 부하↓) */
     .skeleton{ background:linear-gradient(90deg,#f3f3f3 25%,#eaeaea 37%,#f3f3f3 63%); background-size:400% 100%; animation:shimmer 1.2s infinite; border:1px solid #eee; border-radius:10px }
     @keyframes shimmer{ 0%{background-position:100% 0} 100%{background-position:-100% 0} }
 
@@ -113,58 +114,55 @@
     licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Unicode data © The Unicode Consortium.
   </footer>
 
-  <!-- 🔹 인라인 즉시 데이터: People & Body 36개 (즉시 페인트 보장) -->
-  <script type="application/json" id="INLINE_PEOPLE">[
-    {"group":"People & Body","name_en":"person","name_ko":"사람","emoji":"🧑"},
-    {"group":"People & Body","name_en":"man","name_ko":"남자","emoji":"👨"},
-    {"group":"People & Body","name_en":"woman","name_ko":"여자","emoji":"👩"},
-    {"group":"People & Body","name_en":"boy","name_ko":"소년","emoji":"👦"},
-    {"group":"People & Body","name_en":"girl","name_ko":"소녀","emoji":"👧"},
-    {"group":"People & Body","name_en":"baby","name_ko":"아기","emoji":"👶"},
-    {"group":"People & Body","name_en":"old man","name_ko":"노인(남)","emoji":"👴"},
-    {"group":"People & Body","name_en":"old woman","name_ko":"노인(여)","emoji":"👵"},
-    {"group":"People & Body","name_en":"waving hand","name_ko":"손 흔들기","emoji":"👋"},
-    {"group":"People & Body","name_en":"thumbs up","name_ko":"따봉","emoji":"👍"},
-    {"group":"People & Body","name_en":"thumbs down","name_ko":"따봉 반대","emoji":"👎"},
-    {"group":"People & Body","name_en":"clapping hands","name_ko":"박수","emoji":"👏"},
-    {"group":"People & Body","name_en":"raising hands","name_ko":"만세","emoji":"🙌"},
-    {"group":"People & Body","name_en":"folded hands","name_ko":"합장","emoji":"🙏"},
-    {"group":"People & Body","name_en":"handshake","name_ko":"악수","emoji":"🤝"},
-    {"group":"People & Body","name_en":"victory hand","name_ko":"브이","emoji":"✌️"},
-    {"group":"People & Body","name_en":"crossed fingers","name_ko":"행운","emoji":"🤞"},
-    {"group":"People & Body","name_en":"OK hand","name_ko":"오케이","emoji":"👌"},
-    {"group":"People & Body","name_en":"call me hand","name_ko":"전화해","emoji":"🤙"},
-    {"group":"People & Body","name_en":"backhand index left","name_ko":"왼쪽 가리킴","emoji":"👈"},
-    {"group":"People & Body","name_en":"backhand index right","name_ko":"오른쪽 가리킴","emoji":"👉"},
-    {"group":"People & Body","name_en":"backhand index up","name_ko":"위 가리킴","emoji":"👆"},
-    {"group":"People & Body","name_en":"backhand index down","name_ko":"아래 가리킴","emoji":"👇"},
-    {"group":"People & Body","name_en":"raised hand","name_ko":"손바닥","emoji":"✋"},
-    {"group":"People & Body","name_en":"raised back of hand","name_ko":"손등","emoji":"🤚"},
-    {"group":"People & Body","name_en":"vulcan salute","name_ko":"벌컨 경례","emoji":"🖖"},
-    {"group":"People & Body","name_en":"sign of the horns","name_ko":"락","emoji":"🤘"},
-    {"group":"People & Body","name_en":"love-you gesture","name_ko":"사랑 제스처","emoji":"🤟"},
-    {"group":"People & Body","name_en":"flexed biceps","name_ko":"힘자랑","emoji":"💪"},
-    {"group":"People & Body","name_en":"person walking","name_ko":"걷는 사람","emoji":"🚶"},
-    {"group":"People & Body","name_en":"person running","name_ko":"달리기","emoji":"🏃"},
-    {"group":"People & Body","name_en":"person biking","name_ko":"자전거","emoji":"🚴"},
-    {"group":"People & Body","name_en":"person swimming","name_ko":"수영","emoji":"🏊"},
-    {"group":"People & Body","name_en":"person raising hand","name_ko":"손 든 사람","emoji":"🙋"},
-    {"group":"People & Body","name_en":"person gesturing OK","name_ko":"오케이 제스처","emoji":"🙆"},
-    {"group":"People & Body","name_en":"person gesturing NO","name_ko":"노 제스처","emoji":"🙅"},
-    {"group":"People & Body","name_en":"person bowing","name_ko":"인사","emoji":"🙇"}
+  <!-- 🔹 인라인 즉시 데이터: "Smileys & Emotion" 32개 (첫 화면 즉시 노출용) -->
+  <script type="application/json" id="INLINE_SMILEYS">[
+    {"group":"Smileys & Emotion","name_en":"grinning face","name_ko":"활짝 웃는 얼굴","emoji":"😀"},
+    {"group":"Smileys & Emotion","name_en":"grinning face with big eyes","name_ko":"활짝 웃는 얼굴(눈 큼)","emoji":"😃"},
+    {"group":"Smileys & Emotion","name_en":"grinning face with smiling eyes","name_ko":"웃는 얼굴(눈 미소)","emoji":"😄"},
+    {"group":"Smileys & Emotion","name_en":"beaming face with smiling eyes","name_ko":"활짝 미소 눈웃음","emoji":"😁"},
+    {"group":"Smileys & Emotion","name_en":"grinning squinting face","name_ko":"웃는 눈 찡그림","emoji":"😆"},
+    {"group":"Smileys & Emotion","name_en":"grinning face with sweat","name_ko":"식은땀 웃음","emoji":"😅"},
+    {"group":"Smileys & Emotion","name_en":"face with tears of joy","name_ko":"기쁨의 눈물","emoji":"😂"},
+    {"group":"Smileys & Emotion","name_en":"rolling on the floor laughing","name_ko":"데굴데굴 웃음","emoji":"🤣"},
+    {"group":"Smileys & Emotion","name_en":"slightly smiling face","name_ko":"옅은 미소","emoji":"🙂"},
+    {"group":"Smileys & Emotion","name_en":"upside-down face","name_ko":"거꾸로 얼굴","emoji":"🙃"},
+    {"group":"Smileys & Emotion","name_en":"winking face","name_ko":"윙크","emoji":"😉"},
+    {"group":"Smileys & Emotion","name_en":"smiling face with smiling eyes","name_ko":"눈웃음 미소","emoji":"😊"},
+    {"group":"Smileys & Emotion","name_en":"smiling face with halo","name_ko":"천사 미소","emoji":"😇"},
+    {"group":"Smileys & Emotion","name_en":"smiling face with hearts","name_ko":"하트 가득 미소","emoji":"🥰"},
+    {"group":"Smileys & Emotion","name_en":"smiling face with heart-eyes","name_ko":"하트 눈 미소","emoji":"😍"},
+    {"group":"Smileys & Emotion","name_en":"star-struck","name_ko":"별 반한 얼굴","emoji":"🤩"},
+    {"group":"Smileys & Emotion","name_en":"face blowing a kiss","name_ko":"뽀뽀","emoji":"😘"},
+    {"group":"Smileys & Emotion","name_en":"kissing face","name_ko":"키스 얼굴","emoji":"😗"},
+    {"group":"Smileys & Emotion","name_en":"kissing face with smiling eyes","name_ko":"눈웃음 키스","emoji":"😙"},
+    {"group":"Smileys & Emotion","name_en":"kissing face with closed eyes","name_ko":"눈감은 키스","emoji":"😚"},
+    {"group":"Smileys & Emotion","name_en":"face savoring food","name_ko":"맛있어","emoji":"😋"},
+    {"group":"Smileys & Emotion","name_en":"face with tongue","name_ko":"메롱","emoji":"😛"},
+    {"group":"Smileys & Emotion","name_en":"winking face with tongue","name_ko":"윙크 메롱","emoji":"😜"},
+    {"group":"Smileys & Emotion","name_en":"zany face","name_ko":"미친 척","emoji":"🤪"},
+    {"group":"Smileys & Emotion","name_en":"squinting face with tongue","name_ko":"찡그린 메롱","emoji":"😝"},
+    {"group":"Smileys & Emotion","name_en":"money-mouth face","name_ko":"머니 얼굴","emoji":"🤑"},
+    {"group":"Smileys & Emotion","name_en":"hugging face","name_ko":"포옹","emoji":"🤗"},
+    {"group":"Smileys & Emotion","name_en":"face with hand over mouth","name_ko":"입 가림","emoji":"🤭"},
+    {"group":"Smileys & Emotion","name_en":"shushing face","name_ko":"쉿","emoji":"🤫"},
+    {"group":"Smileys & Emotion","name_en":"thinking face","name_ko":"생각 중","emoji":"🤔"},
+    {"group":"Smileys & Emotion","name_en":"face with raised eyebrow","name_ko":"눈썹 치켜올림","emoji":"🤨"}
   ]</script>
 
   <script type="module">
     /* =========================================================
        설정
     ========================================================= */
-    const DATA_URL = (location.pathname.replace(/[^/]+$/, '') || '/') + 'data/build.json'; // 같은 레포의 정적 스냅샷(있으면 최우선)
+    const DATA_URL = (location.pathname.replace(/[^/]+$/, '') || '/') + 'data/build.json'; // 정적 스냅샷(있으면 최우선)
     const GSHEET = {
       id : '1-W_w24LxJGwqpsSW1B8pqCQGMWF_TV-Ip5L5XqDG68Q',
       gid: '1543598799',
       query: 'select *'
     };
-    const INITIAL_PER_CAT = 36;      // 각 섹션 첫 노출
+
+    // ✅ 첫 화면은 반드시 Smileys만 보이도록
+    const ACTIVE_PREF = "Smileys & Emotion";
+    const INITIAL_PER_CAT = 32;      // 각 카테고리 첫 노출 수(요청 32)
     const MORE_CHUNK      = 240;     // 더보기당 증가량
 
     const CAT_ORDER = [
@@ -199,7 +197,6 @@
     const showStatus=(m)=>{ UI.status.style.display='block'; UI.status.innerHTML=m; };
     const hideStatus=()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
     const toast=(t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
-
     const twParse = (el)=> window.twemoji?.parse(el,{ base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png" });
 
     /* =========================================================
@@ -209,6 +206,7 @@
     const codeToEmoji = (code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
     const pick = (obj, keys)=>{ for(const k of keys){ if(obj[k]!=null && obj[k]!=='') return obj[k]; const k2=Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2 && obj[k2]!=null && obj[k2]!=='') return obj[k2]; } return ''; };
     const slug = (s)=> String(s||'').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+    const cssEsc = (s)=> String(s||'').replace(/"/g,'\\"');
 
     function fetchWithTimeout(url, ms=2500){
       return Promise.race([
@@ -222,32 +220,27 @@
     }
 
     /* =========================================================
-       데이터 정규화
-       - 검색은 name_*만 사용 (keywords 완전 제거)
+       정규화: name_* 만 검색에 사용
     ========================================================= */
     function normalizeGeneric(root){
-      // root: array or object with items/emojis/rows...
       const items = Array.isArray(root) ? root : (root.items||root.emojis||root.data||root.rows||[]);
       const out=[], seen=new Set();
       for(const r of items){
         if(!r) continue;
         const group = pick(r,['group','category','major','cat','section','type']);
         if(!group) continue;
-
         const code  = String(pick(r,['code','unified','unicode','codepoint'])||'').toUpperCase();
         const emoji = r.emoji || (code ? codeToEmoji(code) : '');
         if(!emoji) continue;
 
-        // name_*만 합침
+        // name_* 전부를 합치고, 현지화 우선 이름 선택
         const name_local =
           (LOCALE==='ko' && pick(r,['name_ko','ko','name-korean'])) ||
           (LOCALE==='ja' && pick(r,['name_ja','ja'])) ||
           (LOCALE==='zh' && pick(r,['name_zh','zh'])) ||
           pick(r,['name','name_en','label','cldr','short_name','id']) || '';
 
-        // name_* 전부를 합쳐 검색 문자열 구성
-        const names = Object.keys(r).filter(k=>/^name(_|-)/i.test(k) || k==='name')
-                       .map(k=>String(r[k]||''));
+        const names = Object.keys(r).filter(k=>/^name(_|-)/i.test(k) || k==='name').map(k=>String(r[k]||''));
         const hay = names.join(' ').toLowerCase();
 
         const key = code || emoji; if(seen.has(key)) continue; seen.add(key);
@@ -281,15 +274,16 @@
     /* =========================================================
        전역 상태
     ========================================================= */
-    let ALL=[], BY_CAT=new Map();      // 카테고리별 전체
-    let VIEW_BY_CAT=new Map();         // 화면 반영(36개 + 더보기)
-    const CACHE_KEY='emoji_db_v1';     // 로컬 캐시
+    let ALL=[], BY_CAT=new Map();           // 카테고리별 전체
+    let VIEW_BY_CAT=new Map();              // 화면 반영 상태(32개 + 더보기)
+    let ACTIVE_CAT = ACTIVE_PREF;           // 현재 표시 카테고리(기본: 스마일/감정)
+    const CACHE_KEY='emoji_db_v1';
 
     function saveCache(arr){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(arr)); }catch(_){ } }
     function loadCache(){ try{ const raw=localStorage.getItem(CACHE_KEY); if(!raw) return null; const arr=JSON.parse(raw); return Array.isArray(arr)?arr:null; }catch(_){ return null; } }
 
     /* =========================================================
-       렌더: 칩/섹션/타일
+       렌더: 칩/섹션/타일/표시 전환
     ========================================================= */
     const DEFAULT_EMO = {
       "Smileys & Emotion":"😀","People & Body":"🧑","Animals & Nature":"🐱","Food & Drink":"🍔",
@@ -304,27 +298,26 @@
         const emo=document.createElement('span'); emo.className='emo'; emo.textContent = (BY_CAT.get(cat)?.[0]?.emoji) || DEFAULT_EMO[cat] || '😀';
         const lab=document.createElement('span'); lab.textContent = (L10N[cat] || cat);
         btn.append(emo,lab);
-        btn.onclick=()=>{ document.getElementById(`sec-${slug(cat)}`)?.scrollIntoView({behavior:'smooth', block:'start'}); };
+        btn.onclick=()=>{ setActiveSection(cat); document.getElementById('chipsWrap').scrollIntoView({behavior:'smooth', block:'start'}); };
         frag.appendChild(btn);
       }
       UI.chips.appendChild(frag);
-      UI.chips.querySelector('.chip')?.classList.add('active');
+      // 활성 칩 표시
+      UI.chips.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active', b.dataset.cat===ACTIVE_CAT));
     }
 
     function sectionSkeleton(grid){
       grid.innerHTML='';
       const frag=document.createDocumentFragment();
       for(let i=0;i<INITIAL_PER_CAT;i++){
-        const d=document.createElement('div'); d.className='tile skeleton';
-        frag.appendChild(d);
+        const d=document.createElement('div'); d.className='tile skeleton'; frag.appendChild(d);
       }
       grid.appendChild(frag);
     }
 
     function makeTile(it){
       const t=document.createElement('div'); t.className='tile'; t.title = it.name || it.code || ''; t.dataset.emoji=it.emoji;
-      const span=document.createElement('span'); span.textContent=it.emoji; span.style.fontSize='40px';
-      t.appendChild(span);
+      const span=document.createElement('span'); span.textContent=it.emoji; span.style.fontSize='40px'; t.appendChild(span);
       t.onclick=()=>{ UI.copyOut.value=it.emoji; copyToClipboard(it.emoji); };
       return t;
     }
@@ -352,18 +345,32 @@
         sec.append(head,grid,more);
         frag.appendChild(sec);
 
-        // 초기 뷰 36개 세팅(데이터 들어오면 대체)
+        // 초기 뷰 32개 세팅(데이터 들어오면 대체)
         const list = BY_CAT.get(cat) || [];
         VIEW_BY_CAT.set(cat, list.slice(0, INITIAL_PER_CAT));
         updateSection(cat);
+
+        // 기본 표시: 스마일만 보이고, 나머지 섹션은 숨김
+        if(cat !== ACTIVE_CAT) sec.classList.add('hidden');
       }
       UI.sections.appendChild(frag);
 
-      // 가시화 시점에만 트워모지 파싱
-      const io=new IntersectionObserver((ents)=>{
-        for(const e of ents){ if(e.isIntersecting){ twParse(e.target); io.unobserve(e.target); } }
-      },{rootMargin:"600px"});
-      document.querySelectorAll('.cat-section').forEach(sec=>io.observe(sec));
+      // 현재 보이는 섹션만 즉시 Twemoji 파싱
+      const vis = document.getElementById(`sec-${slug(ACTIVE_CAT)}`);
+      if(vis) twParse(vis);
+    }
+
+    function setActiveSection(cat){
+      ACTIVE_CAT = cat;
+      // 칩 상태
+      UI.chips.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active', b.dataset.cat===ACTIVE_CAT));
+      // 섹션 표시 제어: 선택한 카테고리만 보임
+      document.querySelectorAll('.cat-section').forEach(sec=>{
+        sec.classList.toggle('hidden', sec.dataset.cat!==ACTIVE_CAT);
+      });
+      // 가시화된 섹션을 파싱
+      const vis = document.getElementById(`sec-${slug(ACTIVE_CAT)}`);
+      if(vis) twParse(vis);
     }
 
     function updateSection(cat){
@@ -378,9 +385,10 @@
 
       const total = BY_CAT.get(cat)?.length || 0;
       const moreBtn=document.getElementById(`more-${slug(cat)}`);
-      document.getElementById(`count-${slug(cat)}`).textContent = total ? `${list.length}/${total}` : '';
-      if(total && list.length < total){ moreBtn.style.display='block'; moreBtn.disabled=false; moreBtn.textContent='더보기'; }
-      else { moreBtn.style.display='none'; }
+      const cnt=document.getElementById(`count-${slug(cat)}`);
+      cnt.textContent = total ? `${list.length}/${total}` : '';
+      moreBtn.style.display = (total && list.length < total) ? 'block' : 'none';
+      moreBtn.disabled=false; moreBtn.textContent='더보기';
     }
 
     function onMore(cat){
@@ -399,14 +407,14 @@
       const q = lower(UI.search.value);
       if(!q){
         UI.resultWrap.style.display='none';
-        document.querySelectorAll('.cat-section').forEach(s=>s.style.display='block');
+        // 검색 해제 시: 활성 섹션만 보이도록
+        document.querySelectorAll('.cat-section').forEach(s=>s.classList.toggle('hidden', s.dataset.cat!==ACTIVE_CAT));
+        const vis = document.getElementById(`sec-${slug(ACTIVE_CAT)}`); if(vis) twParse(vis);
         return;
       }
       const hits=[];
       for(const arr of BY_CAT.values()){
-        for(const it of arr){
-          if( (it.nameAll||'').includes(q) ) hits.push(it);
-        }
+        for(const it of arr){ if( (it.nameAll||'').includes(q) ) hits.push(it); }
       }
       UI.resultTitle.textContent='검색 결과';
       UI.resultCount.textContent = `${hits.length.toLocaleString()}개`;
@@ -415,7 +423,8 @@
       for(const it of hits){ frag.appendChild(makeTile(it)); }
       UI.resultGrid.appendChild(frag);
       UI.resultWrap.style.display='block';
-      document.querySelectorAll('.cat-section').forEach(s=>s.style.display='none');
+      // 카테고리 섹션은 숨김
+      document.querySelectorAll('.cat-section').forEach(s=>s.classList.add('hidden'));
       twParse(UI.resultGrid);
     }
 
@@ -424,21 +433,20 @@
     ========================================================= */
     function rebuildFromALL(){
       BY_CAT.clear();
-      // 표준 카테고리 순서(칩/섹션은 항상 노출)
       for(const cat of CAT_ORDER) BY_CAT.set(cat, []);
       for(const it of ALL){
-        const c = BY_CAT.has(it.group) ? it.group : it.group; // 모르는 그룹도 허용
+        const c = BY_CAT.has(it.group) ? it.group : it.group;
         if(!BY_CAT.has(c)) BY_CAT.set(c, []);
         BY_CAT.get(c).push(it);
       }
-      // 정렬
       for(const [k,arr] of BY_CAT.entries()){
         arr.sort((a,b)=> (a.name||'').localeCompare((b.name||''), LOCALE));
       }
       const cats = [...BY_CAT.keys()].sort((a,b)=>(CAT_ORDER.indexOf(a)===-1?999:CAT_ORDER.indexOf(a))-(CAT_ORDER.indexOf(b)===-1?999:CAT_ORDER.indexOf(b)));
-
       buildChips(cats);
       buildSections(cats);
+      // 활성 섹션 재적용
+      setActiveSection(ACTIVE_CAT);
       hideStatus();
     }
 
@@ -455,43 +463,33 @@
     (async function boot(){
       showStatus('초기화…');
 
-      // (A) 표준 카테고리로 칩/섹션 뼈대 즉시 생성(스켈레톤 보임)
-      rebuildFromALL(); // ALL이 비어있어도 섹션/칩 생성됨
+      // (A) 활성 카테고리만 보이도록 뼈대 구성
+      rebuildFromALL();  // ALL이 비어도 섹션/칩 생성됨(스켈레톤)
 
-      // (B) 인라인 36개 → 즉시 채움 (People & Body)
+      // (B) 인라인: 스마일 32개 즉시 반영
       try{
-        const inline = JSON.parse(document.getElementById('INLINE_PEOPLE').textContent||'[]');
+        const inline = JSON.parse(document.getElementById('INLINE_SMILEYS').textContent||'[]');
         const norm = normalizeGeneric(inline);
         if(norm.length){
-          // 다른 카테고리는 아직 스켈레톤, 피플/바디는 즉시 반영
           ALL = ALL.concat(norm);
           rebuildFromALL();
         }
       }catch(_){}
 
-      // (C) Data URL 스냅샷 시도(가장 빠름)
+      // (C) 정적 스냅샷(/data/build.json) 시도
       const fromData = await loadFromDataURL();
       if(fromData && fromData.length){
-        ALL = fromData;
-        saveCache(ALL);
-        rebuildFromALL();
+        ALL = fromData; saveCache(ALL); rebuildFromALL();
       }else{
-        // (D) Sheet(gviz) 시도(최신성)
+        // (D) Google Sheet(gviz) 시도
         const fromSheet = await loadFromSheet();
         if(fromSheet && fromSheet.length){
-          ALL = fromSheet;
-          saveCache(ALL);
-          rebuildFromALL();
+          ALL = fromSheet; saveCache(ALL); rebuildFromALL();
         }else{
           // (E) 캐시라도 있으면 사용
           const cached = loadCache();
-          if(cached && cached.length){
-            ALL = cached; rebuildFromALL();
-          }else{
-            // 아무 것도 없어도 People 36개는 이미 보이는 상태
-            showStatus('외부 데이터 없음 — 인라인 데이터로 표시 중');
-            setTimeout(hideStatus, 1200);
-          }
+          if(cached && cached.length){ ALL = cached; rebuildFromALL(); }
+          else { showStatus('외부 데이터 없음 — 스마일 32개만 표시 중'); setTimeout(hideStatus, 1200); }
         }
       }
     })();
