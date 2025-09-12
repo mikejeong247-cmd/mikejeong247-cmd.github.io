@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>프로 이모지 검색 — 카테고리(폴백 포함)</title>
+<title>프로 이모지 검색 — 카테고리(고정 URL)</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <style>
 /* = CSS 동일 (1안과 완전 동일) = */
@@ -48,16 +48,17 @@ table.cat td{padding:0;border:1px solid #f1f1f1}
 <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Unicode data © The Unicode Consortium.</footer>
 
 <script type="module">
-const BASE=(()=>{const p=location.pathname.split('/').filter(Boolean);return p.length?`/${p[0]}/`:'/';})();
-const DATA_BASE=BASE+'data/', SPRITES_BASE=BASE+'sprites/', FIRST_CHUNK=240, NEXT_CHUNK=240, PREF=["Smileys & Emotion","스마일/감정"];
+/* === 절대경로 상수 (필수 수정 지점) === */
+const DATA_BASE    = "https://mikejeong247-cmd.github.io/data/";    // ← 원한다면 Cloudflare Pages/Worker URL로 교체
+const SPRITES_BASE = "https://mikejeong247-cmd.github.io/sprites/";  // ← 동일
+
+const FIRST_CHUNK=240, NEXT_CHUNK=240, PREF=["Smileys & Emotion","스마일/감정"];
 const UI={search:document.getElementById('search'),copyOut:document.getElementById('copyOut'),btnCopy:document.getElementById('btnCopy'),status:document.getElementById('status'),grid:document.getElementById('grid'),catBody:document.getElementById('catBody'),toast:document.getElementById('toast')};
 const showStatus=m=>{UI.status.style.display='block';UI.status.innerHTML=m}; const hideStatus=()=>{UI.status.style.display='none';UI.status.textContent=''};
 const tw=(el)=>window.twemoji?.parse(el,{base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/",folder:"72x72",ext:".png"});
 const codeToEmoji=c=>{try{return String.fromCodePoint(...String(c).split('-').map(h=>parseInt(h,16)))}catch(_){return"❓"}};
 const pick=(o,ks)=>{for(const k of ks){if(o[k]!=null&&o[k]!=='')return o[k];const k2=Object.keys(o).find(x=>x.toLowerCase()===k.toLowerCase());if(k2&&o[k2]!=null&&o[k2]!=='')return o[k2]}return''};
 async function get(u){try{const r=await fetch(u,{cache:"no-cache"});if(r.ok)return await r.json()}catch(_){ }return null}
-function repo(){const user=location.hostname.replace('.github.io','');const parts=location.pathname.split('/').filter(Boolean);const repo=parts.length?parts[0]:`${user}.github.io`;return {user,repo}}
-async function pickJSON(cands){for(const u of cands){try{const r=await fetch(u,{cache:"no-cache"});if(r.ok){const j=await r.json();j.__src=u;return j}}catch(_){}}return null}
 
 let BUILD=null,MAP=null,HINTS=null,ALL=[],CAT=null,ACTIVE=null,BASEL=[],VIEW=[], SRC='';
 
@@ -83,36 +84,23 @@ const part=list.slice(idx,idx+NEXT_CHUNK); const fr=document.createDocumentFragm
 function setCat(c){ACTIVE=c; document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active', b.dataset.cat===c)); BASEL=CAT.get(c)||[]; applySearch()}
 function applySearch(){const q=document.getElementById('search').value.trim().toLowerCase(); VIEW=!q?BASEL:BASEL.filter(it=>(it.nameText||it.name||'').includes(q)); renderChunk(VIEW); showStatus(`${SRC} · 카테고리: <b>${ACTIVE}</b> · 항목: <b>${VIEW.length.toLocaleString()}</b>`)}
 async function copyTxt(t){try{await navigator.clipboard.writeText(t); document.getElementById('toast').classList.add('show'); setTimeout(()=>document.getElementById('toast').classList.remove('show'),900)}catch(_){document.getElementById('copyOut').value=t; document.getElementById('copyOut').select(); document.execCommand('copy')}}
-document.getElementById('search').oninput=applySearch; document.getElementById('grid').onclick=e=>{const t=e.target.closest('.tile'); if(!t)return; const emo=t.dataset.emoji||''; if(emo){document.getElementById('copyOut').value=emo; copyTxt(emo)}}; document.getElementById('btnCopy').onclick=()=>{const v=document.getElementById('copyOut').value||''; if(v) copyTxt(v)};
 
 function emergency(){const s=(g,n,c)=>({group:g,name:n,nameText:n.toLowerCase(),code:c,emoji:codeToEmoji(c)}); const A=[s("Smileys & Emotion","grinning face","1F600"),s("Smileys & Emotion","smiling face","263A"),s("Smileys & Emotion","tears of joy","1F602"),s("Smileys & Emotion","heart eyes","1F60D"),s("People & Body","person","1F9D1"),s("Animals & Nature","cat","1F431"),s("Food & Drink","hamburger","1F354"),s("Activities","soccer","26BD"),s("Objects","mobile phone","1F4F1"),s("Symbols","heart","2764"),s("Travel & Places","airplane","2708"),s("Flags","Korea","1F1F0-1F1F7")]; while(A.length<60)A.push({...A[A.length%12]}); return A;}
 
 (async function boot(){
   showStatus("데이터 로드 중…");
-  const {user,repo}=repo();
-  const branches=["main","gh-pages","master"];
+  const ver = ""; // 필요하면 ?v=커밋SHA 붙여 캐시무효화
+  BUILD = await get(DATA_BASE + "build.json" + ver);
+  MAP   = await get(SPRITES_BASE + "SPRITE_MAP.json" + ver);
+  HINTS = await get(SPRITES_BASE + "SUPPORT_HINTS.json" + ver);
 
-  const localB=[DATA_BASE+"build.json","/data/build.json","data/build.json"];
-  const cdnB=branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/data/build.json`);
-  const rawB=branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/data/build.json`);
-  const localS=[SPRITES_BASE+"SPRITE_MAP.json","/sprites/SPRITE_MAP.json","sprites/SPRITE_MAP.json"];
-  const cdnS=branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SPRITE_MAP.json`);
-  const rawS=branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SPRITE_MAP.json`);
-  const localH=[SPRITES_BASE+"SUPPORT_HINTS.json","/sprites/SUPPORT_HINTS.json","sprites/SUPPORT_HINTS.json"];
-  const cdnH=branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SUPPORT_HINTS.json`);
-  const rawH=branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SUPPORT_HINTS.json`);
-
-  // build 우선
-  const tryBuild = await pickJSON([...localB, ...cdnB, ...rawB]);
-  if(tryBuild){ BUILD=tryBuild; SRC=`소스: <b>build.json</b> <small>${BUILD.__src||'local'}</small>`; }
-  MAP   = await pickJSON([...localS, ...cdnS, ...rawS]) || null;
-  HINTS = await pickJSON([...localH, ...cdnH, ...rawH]) || null;
-
-  if(BUILD){ const root=BUILD.items||BUILD.emojis||BUILD.data||BUILD.rows||BUILD; ALL=norm(root); CAT=catMap(ALL); catTable(CAT);
+  if(BUILD){ SRC=`소스: <b>build.json</b> <small>${DATA_BASE}build.json</small>`; const root=BUILD.items||BUILD.emojis||BUILD.data||BUILD.rows||BUILD; ALL=norm(root); CAT=catMap(ALL); catTable(CAT);
     const first=[...CAT.keys()].find(k=>PREF.includes(k))||[...CAT.keys()][0]; setCat(first); hideStatus(); return; }
 
-  // build 실패 → 샘플
   SRC="소스: <b>내장 샘플</b>"; ALL=emergency(); CAT=catMap(ALL); catTable(CAT); const first=[...CAT.keys()][0]; setCat(first);
 })();
+document.getElementById('search').oninput=applySearch;
+document.getElementById('grid').onclick=e=>{const t=e.target.closest('.tile'); if(!t)return; const emo=t.dataset.emoji||''; if(emo){document.getElementById('copyOut').value=emo; copyTxt(emo)}};
+document.getElementById('btnCopy').onclick=()=>{const v=document.getElementById('copyOut').value||''; if(v) copyTxt(v)};
 </script>
 </body></html>
