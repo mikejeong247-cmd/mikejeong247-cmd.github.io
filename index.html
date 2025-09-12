@@ -49,7 +49,7 @@
     #resultGrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--tile),1fr)); gap:var(--gap) }
 
     /* 카테고리 섹션 */
-    .cat-section{ max-width:var(--grid-width); margin:18px auto 44px; padding:0 8px; content-visibility:auto; contain-intrinsic-size:1px 1200px }
+    .cat-section{ max-width:var(--grid-width); margin:18px auto 44px; padding:0 8px; }
     .cat-section.hidden{ display:none }
     .cat-head{ display:flex; gap:10px; align-items:center; margin-bottom:8px }
     .cat-emo{ font-size:22px }
@@ -58,10 +58,6 @@
     .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--tile),1fr)); gap:var(--gap) }
     .tile{ width:var(--tile); height:var(--tile); display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:10px; background:#fff; user-select:none; cursor:pointer; transition:transform .04s }
     .tile:hover{ transform:translateY(-1px); background:#fafafa }
-
-    /* 스켈레톤(초기 페인트 부하↓) */
-    .skeleton{ background:linear-gradient(90deg,#f3f3f3 25%,#eaeaea 37%,#f3f3f3 63%); background-size:400% 100%; animation:shimmer 1.2s infinite; border:1px solid #eee; border-radius:10px }
-    @keyframes shimmer{ 0%{background-position:100% 0} 100%{background-position:-100% 0} }
 
     .more{ margin-top:10px; text-align:center }
     .btn-more{ width:100%; height:42px; border:1px solid #ddd; background:#fff; border-radius:10px; cursor:pointer }
@@ -105,8 +101,55 @@
     <div id="resultGrid"></div>
   </section>
 
-  <!-- 5) 카테고리 섹션 컨테이너 -->
-  <div id="sections"></div>
+  <!-- 5) 섹션 컨테이너 -->
+  <div id="sections">
+    <!-- ✅ 프리렌더: 첫 화면에 "스마일/감정" 32개를 HTML로 미리 출력 (JS 없이 즉시 보임) -->
+    <section class="cat-section" id="pre-smileys" data-cat="Smileys & Emotion">
+      <div class="cat-head">
+        <span class="cat-emo">😀</span>
+        <div class="cat-title">스마일/감정</div>
+        <div class="cat-count" id="pre-count">32</div>
+      </div>
+      <div class="grid" id="pre-grid">
+        <!-- 32개 프리렌더 타일 -->
+        <div class="tile"><span style="font-size:40px">😀</span></div>
+        <div class="tile"><span style="font-size:40px">😃</span></div>
+        <div class="tile"><span style="font-size:40px">😄</span></div>
+        <div class="tile"><span style="font-size:40px">😁</span></div>
+        <div class="tile"><span style="font-size:40px">😆</span></div>
+        <div class="tile"><span style="font-size:40px">😅</span></div>
+        <div class="tile"><span style="font-size:40px">😂</span></div>
+        <div class="tile"><span style="font-size:40px">🤣</span></div>
+        <div class="tile"><span style="font-size:40px">🙂</span></div>
+        <div class="tile"><span style="font-size:40px">🙃</span></div>
+        <div class="tile"><span style="font-size:40px">😉</span></div>
+        <div class="tile"><span style="font-size:40px">😊</span></div>
+        <div class="tile"><span style="font-size:40px">😇</span></div>
+        <div class="tile"><span style="font-size:40px">🥰</span></div>
+        <div class="tile"><span style="font-size:40px">😍</span></div>
+        <div class="tile"><span style="font-size:40px">🤩</span></div>
+        <div class="tile"><span style="font-size:40px">😘</span></div>
+        <div class="tile"><span style="font-size:40px">😗</span></div>
+        <div class="tile"><span style="font-size:40px">😙</span></div>
+        <div class="tile"><span style="font-size:40px">😚</span></div>
+        <div class="tile"><span style="font-size:40px">😋</span></div>
+        <div class="tile"><span style="font-size:40px">😛</span></div>
+        <div class="tile"><span style="font-size:40px">😜</span></div>
+        <div class="tile"><span style="font-size:40px">🤪</span></div>
+        <div class="tile"><span style="font-size:40px">😝</span></div>
+        <div class="tile"><span style="font-size:40px">🤑</span></div>
+        <div class="tile"><span style="font-size:40px">🤗</span></div>
+        <div class="tile"><span style="font-size:40px">🤭</span></div>
+        <div class="tile"><span style="font-size:40px">🤫</span></div>
+        <div class="tile"><span style="font-size:40px">🤔</span></div>
+        <div class="tile"><span style="font-size:40px">🤨</span></div>
+        <div class="tile"><span style="font-size:40px">🙂‍↔️</span></div><!-- 예비 32번째(대체 가능) -->
+      </div>
+      <div class="more">
+        <button class="btn-more" id="pre-more" disabled title="데이터 로딩 후 활성화">더보기</button>
+      </div>
+    </section>
+  </div>
 
   <!-- 6) 법적 표기 -->
   <footer id="legal">
@@ -114,7 +157,7 @@
     licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Unicode data © The Unicode Consortium.
   </footer>
 
-  <!-- ✅ 인라인 즉시 데이터: "Smileys & Emotion" 32개 (첫 화면 즉시 렌더용) -->
+  <!-- 🔹 인라인 데이터(JSON) — 스마일/감정 32개 (동적 빌드용, 프리렌더와 동일 세트) -->
   <script type="application/json" id="INLINE_SMILEYS">[
     {"group":"Smileys & Emotion","name_en":"grinning face","name_ko":"활짝 웃는 얼굴","emoji":"😀"},
     {"group":"Smileys & Emotion","name_en":"grinning face with big eyes","name_ko":"활짝 웃는 얼굴(눈 큼)","emoji":"😃"},
@@ -146,7 +189,8 @@
     {"group":"Smileys & Emotion","name_en":"face with hand over mouth","name_ko":"입 가림","emoji":"🤭"},
     {"group":"Smileys & Emotion","name_en":"shushing face","name_ko":"쉿","emoji":"🤫"},
     {"group":"Smileys & Emotion","name_en":"thinking face","name_ko":"생각 중","emoji":"🤔"},
-    {"group":"Smileys & Emotion","name_en":"face with raised eyebrow","name_ko":"눈썹 치켜올림","emoji":"🤨"}
+    {"group":"Smileys & Emotion","name_en":"face with raised eyebrow","name_ko":"눈썹 치켜올림","emoji":"🤨"},
+    {"group":"Smileys & Emotion","name_en":"melting face","name_ko":"녹는 얼굴","emoji":"🫠"}
   ]</script>
 
   <script type="module">
@@ -197,6 +241,7 @@
     const showStatus=(m)=>{ UI.status.style.display='block'; UI.status.innerHTML=m; };
     const hideStatus=()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
     const toast=(t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
+
     const twParse = (el)=> window.twemoji?.parse(el,{ base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png" });
 
     /* =========================
@@ -304,15 +349,6 @@
       UI.chips.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active', b.dataset.cat===ACTIVE_CAT));
     }
 
-    function sectionSkeleton(grid){
-      grid.innerHTML='';
-      const frag=document.createDocumentFragment();
-      for(let i=0;i<INITIAL_PER_CAT;i++){
-        const d=document.createElement('div'); d.className='tile skeleton'; frag.appendChild(d);
-      }
-      grid.appendChild(frag);
-    }
-
     function makeTile(it){
       const t=document.createElement('div'); t.className='tile'; t.title = it.name || it.code || ''; t.dataset.emoji=it.emoji;
       const span=document.createElement('span'); span.textContent=it.emoji; span.style.fontSize='40px'; t.appendChild(span);
@@ -321,6 +357,7 @@
     }
 
     function buildSections(cats){
+      // 프리렌더 섹션은 이후 전체 렌더 시 교체
       UI.sections.innerHTML='';
       const frag=document.createDocumentFragment();
       for(const cat of cats){
@@ -332,7 +369,6 @@
         const count=document.createElement('div'); count.className='cat-count'; count.id=`count-${slug(cat)}`;
 
         const grid=document.createElement('div'); grid.className='grid'; grid.id=`grid-${slug(cat)}`;
-        sectionSkeleton(grid); // 데이터 오기 전 스켈레톤
 
         const more=document.createElement('div'); more.className='more';
         const btn=document.createElement('button'); btn.className='btn-more'; btn.textContent='더보기'; btn.id=`more-${slug(cat)}`;
@@ -343,17 +379,24 @@
         sec.append(head,grid,more);
         frag.appendChild(sec);
 
-        // 초기 뷰 32개 세팅(데이터 들어오면 대체)
-        const list = BY_CAT.get(cat) || [];
-        VIEW_BY_CAT.set(cat, list.slice(0, INITIAL_PER_CAT));
-        updateSection(cat);
-
+        // 초기 뷰 32개 세팅 및 렌더
+        const list = (BY_CAT.get(cat)||[]).slice(0, INITIAL_PER_CAT);
+        VIEW_BY_CAT.set(cat, list);
+        if(list.length){
+          const f=document.createDocumentFragment();
+          for(const it of list){ f.appendChild(makeTile(it)); }
+          grid.appendChild(f);
+        }
         // 기본 표시: 스마일만 보이고, 나머지 섹션은 숨김
         if(cat !== ACTIVE_CAT) sec.classList.add('hidden');
+
+        const total = BY_CAT.get(cat)?.length || 0;
+        document.getElementById(`count-${slug(cat)}`)?.textContent = total ? `${list.length}/${total}` : '';
+        btn.style.display = (total && list.length < total) ? 'block' : 'none';
       }
       UI.sections.appendChild(frag);
 
-      // 현재 보이는 섹션만 즉시 Twemoji 파싱
+      // 현재 보이는 섹션만 즉시 트워모지 파싱
       const vis = document.getElementById(`sec-${slug(ACTIVE_CAT)}`);
       if(vis) twParse(vis);
     }
@@ -368,31 +411,22 @@
       if(vis) twParse(vis);
     }
 
-    function updateSection(cat){
-      const grid=document.getElementById(`grid-${slug(cat)}`); if(!grid) return;
-      const list=VIEW_BY_CAT.get(cat)||[];
-      if(list.length){
-        grid.innerHTML='';
-        const frag=document.createDocumentFragment();
-        for(const it of list){ frag.appendChild(makeTile(it)); }
-        grid.appendChild(frag);
-      } // 없으면 스켈레톤 유지
-
-      const total = BY_CAT.get(cat)?.length || 0;
-      const moreBtn=document.getElementById(`more-${slug(cat)}`);
-      const cnt=document.getElementById(`count-${slug(cat)}`);
-      cnt.textContent = total ? `${list.length}/${total}` : '';
-      moreBtn.style.display = (total && list.length < total) ? 'block' : 'none';
-      moreBtn.disabled=false; moreBtn.textContent='더보기';
-    }
-
     function onMore(cat){
       const list = BY_CAT.get(cat) || [];
       const cur  = VIEW_BY_CAT.get(cat) || [];
       if(!list.length) return;
       const next = list.slice(0, Math.min(cur.length + MORE_CHUNK, list.length));
       VIEW_BY_CAT.set(cat, next);
-      updateSection(cat);
+      const grid=document.getElementById(`grid-${slug(cat)}`);
+      grid.innerHTML='';
+      const f=document.createDocumentFragment();
+      for(const it of next){ f.appendChild(makeTile(it)); }
+      grid.appendChild(f);
+      const total=list.length;
+      const btn=document.getElementById(`more-${slug(cat)}`);
+      document.getElementById(`count-${slug(cat)}`).textContent=`${next.length}/${total}`;
+      btn.style.display = next.length<total?'block':'none';
+      twParse(grid);
     }
 
     /* =========================
@@ -428,7 +462,7 @@
       BY_CAT.clear();
       for(const cat of CAT_ORDER) BY_CAT.set(cat, []);
       for(const it of ALL){
-        const c = BY_CAT.has(it.group) ? it.group : it.group;
+        const c = BY_CAT.has(it.group) ? it.group : it.group; // 미지의 그룹도 수용
         if(!BY_CAT.has(c)) BY_CAT.set(c, []);
         BY_CAT.get(c).push(it);
       }
@@ -443,7 +477,7 @@
     }
 
     /* =========================
-       부트스트랩 (★ 인라인 선렌더 → Data URL → Sheet)
+       부트스트랩 (프리렌더 유지 → 전체 빌드 교체)
     ========================== */
     async function copyToClipboard(text){
       try{ await navigator.clipboard.writeText(text); toast(); }
@@ -453,17 +487,20 @@
     UI.search.addEventListener('input', onSearch);
 
     (async function boot(){
-      showStatus('초기화…');
+      // 프리렌더 섹션을 먼저 트워모지 파싱(즉시 컬러)
+      twParse(document.getElementById('pre-smileys'));
 
-      // ① 인라인(스마일 32개) 먼저 파싱 → 즉시 렌더
+      // 프리렌더의 더보기 버튼은 데이터 도착 후 활성화
+      const preMore = document.getElementById('pre-more');
+
+      // ① 인라인 JSON → 최소 데이터 구성(프리렌더 유지 상태에서 전역 빌드 준비)
       try{
         const inline = JSON.parse(document.getElementById('INLINE_SMILEYS').textContent||'[]');
         const norm = normalizeGeneric(inline);
-        ALL = norm;                      // ★ 인라인을 우선 데이터로 사용
-        rebuildFromALL();                // → 스마일 32개 즉시 보임
-      }catch(_){ /* 인라인이 비어도 계속 진행 */ }
+        ALL = norm;
+      }catch(_){}
 
-      // ② 정적 스냅샷(/data/build.json) 시도 (있으면 즉시 대체)
+      // ② 정적 스냅샷(/data/build.json) 시도
       let merged = await loadFromDataURL();
 
       // ③ 정적이 없으면 Google Sheet(gviz) 시도
@@ -471,13 +508,18 @@
         merged = await loadFromSheet();
       }
 
-      // ④ 성공 시 최신 데이터로 교체, 실패 시 로컬 캐시 사용
+      // ④ 성공 시 최신 데이터로 교체 렌더(프리렌더 섹션 교체)
       if(merged && merged.length){
-        ALL = merged; saveCache(ALL); rebuildFromALL();
+        ALL = merged; saveCache(ALL);
+        rebuildFromALL();
+      }else if(ALL && ALL.length){
+        // 인라인만 있는 경우에도 전체 프레임으로 교체(스마일만 채워짐)
+        rebuildFromALL();
       }else{
-        const cached = loadCache();
-        if(cached && cached.length){ ALL = cached; rebuildFromALL(); }
-        else { showStatus('외부 데이터 없음 — 스마일 32개만 표시 중'); setTimeout(hideStatus, 1200); }
+        showStatus('외부 데이터 없음 — 스마일 32개만 표시 중');
+        setTimeout(hideStatus, 1200);
+        // 프리렌더 더보기는 계속 비활성
+        if(preMore) preMore.disabled = true;
       }
     })();
   </script>
