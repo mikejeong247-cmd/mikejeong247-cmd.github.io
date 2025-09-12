@@ -1,106 +1,420 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>프로 이모지 검색 — 카테고리(고정 URL)</title>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<style>
-/* = CSS 동일 (1안과 완전 동일) = */
-:root{--grid-width:520px;--tile:72px;--gap:8px;--maxw:1100px;--cat-h:48px;--cat-f:15px}
-*{box-sizing:border-box}html,body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Apple Color Emoji,Noto Color Emoji,sans-serif}
-#toolbar{position:sticky;top:0;z-index:9;background:#fff;border-bottom:1px solid #eee}
-#toolbar .in{max-width:var(--maxw);margin:0 auto;padding:10px 12px;display:grid;gap:8px;grid-template-columns:1fr auto;align-items:center}
-#search{height:40px;border:1px solid #ddd;border-radius:8px;padding:0 12px;font-size:15px}
-#copyBox{display:flex;gap:8px;align-items:center}
-#copyOut{width:160px;height:40px;border:1px solid #ddd;border-radius:8px;padding:0 12px;font-size:16px}
-#btnCopy{height:40px;padding:0 14px;border:1px solid #333;background:#111;color:#fff;border-radius:8px;cursor:pointer}
-#catWrap{position:sticky;top:60px;z-index:8;background:#fff;border-bottom:1px solid #eee}
-#catWrap .in{max-width:var(--maxw);margin:0 auto;padding:8px 12px}
-table.cat{width:100%;table-layout:fixed;border-collapse:collapse;font-size:var(--cat-f)}
-table.cat td{padding:0;border:1px solid #f1f1f1}
-.cat-btn{width:100%;height:var(--cat-h);display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:center;padding:8px 10px;border:0;background:#fff;cursor:pointer}
-.cat-btn:hover{background:#fafafa}.cat-btn.active{outline:2px solid rgba(0,0,0,.08);background:#f9f9ff}
-.cat-emo{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:20px}
-.cat-lab{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:left}
-#gridWrap{max-width:var(--grid-width);margin:12px auto 60px;padding:0 8px}
-#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile),1fr));gap:var(--gap)}
-.tile{width:var(--tile);height:var(--tile);display:inline-flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid #eee;background:#fff;cursor:pointer;user-select:none;transition:transform .04s}
-.tile:hover{transform:translateY(-1px);background:#fafafa}.tile img{width:var(--tile);height:var(--tile);image-rendering:-webkit-optimize-contrast}
-#status{max-width:960px;margin:16px auto 0;padding:8px 12px;color:#444;text-align:center;display:none}
-#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.8);color:#fff;padding:8px 12px;border-radius:20px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
-#toast.show{opacity:1}
-#legal{max-width:var(--maxw);margin:24px auto 40px;padding:0 12px;font-size:12px;color:#777}
-#legal a{color:inherit;text-decoration:underline}
-@media(max-width:720px){:root{--cat-f:14px}#toolbar .in{grid-template-columns:1fr}#catWrap{top:112px}}
-</style>
-<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>프로 이모지 검색 — 하이브리드 인라인 PRO</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <style>
+    :root{
+      --grid-width:520px;     /* 초기 LCP 최소화(원하면 560px) */
+      --tile:72px;            /* 타일 크기 */
+      --gap:8px;              /* 타일 간격 */
+      --maxw:1100px;          /* 레이아웃 폭 */
+      --cat-h:48px;           /* 카테고리 셀 높이 */
+      --cat-f:15px;           /* 카테고리 글자 크기 */
+    }
+    *{ box-sizing:border-box }
+    html,body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Apple Color Emoji,Noto Color Emoji,sans-serif }
+
+    /* 상단 바 */
+    #toolbar{ position:sticky; top:0; z-index:9; background:#fff; border-bottom:1px solid #eee; }
+    #toolbar .in{ max-width:var(--maxw); margin:0 auto; padding:10px 12px; display:grid; gap:8px; grid-template-columns:1fr auto; align-items:center; }
+    #search{ height:40px; border:1px solid #ddd; border-radius:8px; padding:0 12px; font-size:15px; }
+    #copyBox{ display:flex; gap:8px; align-items:center; }
+    #copyOut{ width:160px; height:40px; border:1px solid #ddd; border-radius:8px; padding:0 12px; font-size:16px; }
+    #btnCopy{ height:40px; padding:0 14px; border:1px solid #333; background:#111; color:#fff; border-radius:8px; cursor:pointer; }
+
+    /* 카테고리 표 */
+    #catWrap{ position:sticky; top:60px; z-index:8; background:#fff; border-bottom:1px solid #eee; }
+    #catWrap .in{ max-width:var(--maxw); margin:0 auto; padding:8px 12px; }
+    table.cat{ width:100%; table-layout:fixed; border-collapse:collapse; font-size:var(--cat-f); }
+    table.cat td{ padding:0; border:1px solid #f1f1f1; }
+    .cat-btn{ width:100%; height:var(--cat-h); display:grid; grid-template-columns:28px 1fr; gap:8px; align-items:center; padding:8px 10px; border:0; background:#fff; cursor:pointer; }
+    .cat-btn:hover{ background:#fafafa; }
+    .cat-btn.active{ outline:2px solid rgba(0,0,0,.08); background:#f9f9ff; }
+    .cat-emo{ width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; font-size:20px; }
+    .cat-lab{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:left; }
+
+    /* 그리드 */
+    #gridWrap{ max-width:var(--grid-width); margin:12px auto 60px; padding:0 8px; }
+    #grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--tile), 1fr)); gap:var(--gap); align-items:start; }
+    .tile{ width:var(--tile); height:var(--tile); display:inline-flex; align-items:center; justify-content:center; border:1px solid #eee; border-radius:10px; background:#fff; cursor:pointer; user-select:none; transition:transform .04s; }
+    .tile:hover{ transform:translateY(-1px); background:#fafafa; }
+    .tile img{ width:var(--tile); height:var(--tile); image-rendering:-webkit-optimize-contrast; }
+
+    /* 상태/토스트/법적 표기 */
+    #status{ max-width:960px; margin:16px auto 0; padding:8px 12px; color:#444; text-align:center; display:none; font-size:14px; }
+    #toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:20; background:rgba(0,0,0,.8); color:#fff; padding:8px 12px; border-radius:20px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s; }
+    #toast.show{ opacity:1; }
+    #legal{ max-width:var(--maxw); margin:24px auto 40px; padding:0 12px; font-size:12px; color:#777; }
+    #legal a{ color:inherit; text-decoration:underline; }
+
+    @media (max-width:720px){
+      :root{ --cat-f:14px }
+      #toolbar .in{ grid-template-columns:1fr }
+      #catWrap{ top:112px }
+    }
+  </style>
+
+  <!-- Twemoji: PNG 강제(SVG OFF) -->
+  <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-<header id="toolbar"><div class="in">
-  <input id="search" type="search" placeholder="이모지 이름(name_*)으로 검색 (현재 카테고리 내)"/>
-  <div id="copyBox"><input id="copyOut" type="text" readonly placeholder="복사할 이모지"/><button id="btnCopy">복사</button></div>
-</div></header>
-<section id="catWrap"><div class="in"><table class="cat"><tbody id="catBody"></tbody></table></div></section>
-<div id="status"></div>
-<main id="gridWrap"><section id="grid"></section></main>
-<div id="toast">복사 완료!</div>
-<footer id="legal">Emoji graphics by <a href="https://twemoji.twitter.com/" target="_blank" rel="noopener">Twemoji</a> © Twitter, licensed under
-<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Unicode data © The Unicode Consortium.</footer>
+  <!-- 상단 -->
+  <header id="toolbar">
+    <div class="in">
+      <input id="search" type="search" placeholder="이모지 이름(name_*)으로 검색 (현재 카테고리 내)" />
+      <div id="copyBox">
+        <input id="copyOut" type="text" readonly placeholder="복사할 이모지" />
+        <button id="btnCopy" type="button">복사</button>
+      </div>
+    </div>
+  </header>
 
-<script type="module">
-/* === 절대경로 상수 (필수 수정 지점) === */
-const DATA_BASE    = "https://mikejeong247-cmd.github.io/data/";    // ← 원한다면 Cloudflare Pages/Worker URL로 교체
-const SPRITES_BASE = "https://mikejeong247-cmd.github.io/sprites/";  // ← 동일
+  <!-- 카테고리 -->
+  <section id="catWrap">
+    <div class="in">
+      <table class="cat"><tbody id="catBody"></tbody></table>
+    </div>
+  </section>
 
-const FIRST_CHUNK=240, NEXT_CHUNK=240, PREF=["Smileys & Emotion","스마일/감정"];
-const UI={search:document.getElementById('search'),copyOut:document.getElementById('copyOut'),btnCopy:document.getElementById('btnCopy'),status:document.getElementById('status'),grid:document.getElementById('grid'),catBody:document.getElementById('catBody'),toast:document.getElementById('toast')};
-const showStatus=m=>{UI.status.style.display='block';UI.status.innerHTML=m}; const hideStatus=()=>{UI.status.style.display='none';UI.status.textContent=''};
-const tw=(el)=>window.twemoji?.parse(el,{base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/",folder:"72x72",ext:".png"});
-const codeToEmoji=c=>{try{return String.fromCodePoint(...String(c).split('-').map(h=>parseInt(h,16)))}catch(_){return"❓"}};
-const pick=(o,ks)=>{for(const k of ks){if(o[k]!=null&&o[k]!=='')return o[k];const k2=Object.keys(o).find(x=>x.toLowerCase()===k.toLowerCase());if(k2&&o[k2]!=null&&o[k2]!=='')return o[k2]}return''};
-async function get(u){try{const r=await fetch(u,{cache:"no-cache"});if(r.ok)return await r.json()}catch(_){ }return null}
+  <!-- 상태/그리드/토스트 -->
+  <div id="status"></div>
+  <main id="gridWrap"><section id="grid"></section></main>
+  <div id="toast">복사 완료!</div>
 
-let BUILD=null,MAP=null,HINTS=null,ALL=[],CAT=null,ACTIVE=null,BASEL=[],VIEW=[], SRC='';
+  <!-- 법적 표기 -->
+  <footer id="legal">
+    Emoji graphics by <a href="https://twemoji.twitter.com/" target="_blank" rel="noopener">Twemoji</a> © Twitter,
+    licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
+    Unicode data © The Unicode Consortium.
+  </footer>
 
-function norm(root){const out=[],seen=new Set();(function w(n,cat=''){if(!n)return;if(Array.isArray(n)){for(const v of n)w(v,cat);return}if(typeof n!=='object')return;
- const g=pick(n,['group','category','major','cat','section','type'])||cat; if(Array.isArray(n.items))for(const v of n.items)w(v,g);
- const code=pick(n,['code','hex','u','unified','unicode','codepoint','cp']); const emo=n.emoji||(code?codeToEmoji(code):'');
- if(emo||code){const key=(code||emo); if(seen.has(key))return; seen.add(key);
-  const names=Object.keys(n).filter(k=>/^name[_-]/i.test(k)||k==='name').map(k=>String(n[k])).filter(Boolean);
-  const pri=pick(n,['name_ko','name_kr','name_korean','name'])||pick(n,['name_en','label','cldr','short_name','id'])||'';
-  out.push({group:g||pick(n,['group','category','major','cat']),name:pri,nameText:[pri,...names].join(' ').toLowerCase(),code:(code||'').toUpperCase(),emoji:emo,png:pick(n,['png','pngUrl','url','image','img'])});
- } else { for(const v of Object.values(n)) if(v&&typeof v==='object') w(v,g); }})(root,''); return out;}
-function catMap(items){const m=new Map();for(const it of items){const c=it.group||'기타';if(!m.has(c))m.set(c,[]);m.get(c).push(it)}return m}
-function catTable(m){const tb=UI.catBody;tb.innerHTML="";const ord=["Smileys & Emotion","People & Body","Animals & Nature","Food & Drink","Travel & Places","Activities","Objects","Symbols","Flags"];const cats=[...m.keys()].sort((a,b)=>(ord.indexOf(a)===-1?999:ord.indexOf(a))-(ord.indexOf(b)===-1?999:ord.indexOf(b)));const cols=(innerWidth<=720)?3:5;
- for(let i=0;i<cats.length;i+=cols){const tr=document.createElement('tr');for(const c of cats.slice(i,i+cols)){const td=document.createElement('td'),btn=document.createElement('button');btn.className='cat-btn';btn.dataset.cat=c;const em=document.createElement('span');em.className='cat-emo';em.textContent=(m.get(c)||[])[0]?.emoji||"😀";const la=document.createElement('span');la.className='cat-lab';la.textContent=( {"Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연","Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동","Objects":"사물","Symbols":"기호","Flags":"국기"}[c]||c );btn.append(em,la);td.appendChild(btn);tr.appendChild(td)}while(tr.children.length<cols)tr.appendChild(document.createElement('td'));tb.appendChild(tr)}tw(tb);tb.onclick=e=>{const b=e.target.closest('.cat-btn');if(b)setCat(b.dataset.cat)}}
-const hasSpr=it=> MAP && (MAP[it.code] || (MAP.sprites && MAP.sprites[it.code])); const rec=it=>(MAP && (MAP[it.code] || (MAP.sprites && MAP.sprites[it.code])))||null;
-function tile(it){const t=document.createElement('div');t.className='tile';t.title=it.name||it.code||""; if(hasSpr(it)){const r=rec(it),sheet=(r.sheet||r.s||r.sprite||"emoji-top500-1.webp");const bx=-(r.x||r.left||0),by=-(r.y||r.top||0),bw=r.w||r.width||72,bh=r.h||r.height||72;
-t.style.backgroundImage=`url(${SPRITES_BASE}${sheet})`;t.style.backgroundPosition=`${bx}px ${by}px`;t.style.backgroundRepeat="no-repeat";t.style.width=bw+"px";t.style.height=bh+"px";t.dataset.emoji=it.emoji;return t}
-if(it.png && !(HINTS?.block?.includes(it.code))){const img=document.createElement('img');img.loading="lazy";img.decoding="async";img.src=it.png;img.alt=it.name||it.code||"";t.appendChild(img);t.dataset.emoji=it.emoji;return t}
-const s=document.createElement('span');s.textContent=it.emoji||"❓";s.style.fontSize="40px";t.appendChild(s);tw(t);t.dataset.emoji=it.emoji||"";return t}
-function renderChunk(list){UI.grid.innerHTML=""; let idx=0; const first=list.slice(0,FIRST_CHUNK); const f=document.createDocumentFragment(); for(const it of first) f.appendChild(tile(it)); UI.grid.appendChild(f); idx=FIRST_CHUNK;
-const sentinel=document.createElement('div'); UI.grid.appendChild(sentinel); const io=new IntersectionObserver(es=>{if(!es.some(e=>e.isIntersecting))return; if(idx>=list.length){io.disconnect();return;}
-const part=list.slice(idx,idx+NEXT_CHUNK); const fr=document.createDocumentFragment(); for(const it of part) fr.appendChild(tile(it)); UI.grid.insertBefore(fr,sentinel); idx+=NEXT_CHUNK;},{rootMargin:"900px"}); io.observe(sentinel);}
-function setCat(c){ACTIVE=c; document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active', b.dataset.cat===c)); BASEL=CAT.get(c)||[]; applySearch()}
-function applySearch(){const q=document.getElementById('search').value.trim().toLowerCase(); VIEW=!q?BASEL:BASEL.filter(it=>(it.nameText||it.name||'').includes(q)); renderChunk(VIEW); showStatus(`${SRC} · 카테고리: <b>${ACTIVE}</b> · 항목: <b>${VIEW.length.toLocaleString()}</b>`)}
-async function copyTxt(t){try{await navigator.clipboard.writeText(t); document.getElementById('toast').classList.add('show'); setTimeout(()=>document.getElementById('toast').classList.remove('show'),900)}catch(_){document.getElementById('copyOut').value=t; document.getElementById('copyOut').select(); document.execCommand('copy')}}
+  <!-- 🔹 인라인 데이터: 스마일/감정 전량을 넣는 슬롯(빌드시 주입) -->
+  <!--  실제 운영 시, 이 배열을 "스마일/감정 카테고리 전부"로 빌드 단계에서 채워 넣어주세요.
+        필드: group, name/name_ko/name_en(아무거나), code(예: "1F600"), emoji(가능하면) -->
+  <script type="application/json" id="INLINE_SMILE">
+  [
+    { "group":"Smileys & Emotion", "name":"grinning face", "code":"1F600", "emoji":"😀" },
+    { "group":"Smileys & Emotion", "name":"smiling face",  "code":"263A",  "emoji":"☺️" },
+    { "group":"Smileys & Emotion", "name":"face with tears of joy", "code":"1F602", "emoji":"😂" }
+    /* ⇧⇧⇧ 빌드 시 여기에 '스마일/감정' 카테고리 전체를 주입(수백개) */
+  ]
+  </script>
 
-function emergency(){const s=(g,n,c)=>({group:g,name:n,nameText:n.toLowerCase(),code:c,emoji:codeToEmoji(c)}); const A=[s("Smileys & Emotion","grinning face","1F600"),s("Smileys & Emotion","smiling face","263A"),s("Smileys & Emotion","tears of joy","1F602"),s("Smileys & Emotion","heart eyes","1F60D"),s("People & Body","person","1F9D1"),s("Animals & Nature","cat","1F431"),s("Food & Drink","hamburger","1F354"),s("Activities","soccer","26BD"),s("Objects","mobile phone","1F4F1"),s("Symbols","heart","2764"),s("Travel & Places","airplane","2708"),s("Flags","Korea","1F1F0-1F1F7")]; while(A.length<60)A.push({...A[A.length%12]}); return A;}
+  <script type="module">
+    /* =========================
+       0) 상수/유틸
+    ==========================*/
+    const BASE = (()=>{ const p=location.pathname.split('/').filter(Boolean); return p.length?`/${p[0]}/`:'/' })();
+    const DATA_BASE    = BASE + 'data/';
+    const SPRITES_BASE = BASE + 'sprites/';
 
-(async function boot(){
-  showStatus("데이터 로드 중…");
-  const ver = ""; // 필요하면 ?v=커밋SHA 붙여 캐시무효화
-  BUILD = await get(DATA_BASE + "build.json" + ver);
-  MAP   = await get(SPRITES_BASE + "SPRITE_MAP.json" + ver);
-  HINTS = await get(SPRITES_BASE + "SUPPORT_HINTS.json" + ver);
+    // 렌더: 선택한 카테고리 전량을 "청크"로 끝까지 로드
+    const FIRST_CHUNK = 240;
+    const NEXT_CHUNK  = 240;
 
-  if(BUILD){ SRC=`소스: <b>build.json</b> <small>${DATA_BASE}build.json</small>`; const root=BUILD.items||BUILD.emojis||BUILD.data||BUILD.rows||BUILD; ALL=norm(root); CAT=catMap(ALL); catTable(CAT);
-    const first=[...CAT.keys()].find(k=>PREF.includes(k))||[...CAT.keys()][0]; setCat(first); hideStatus(); return; }
+    // 기본 진입 카테고리
+    const PREF = ["Smileys & Emotion","스마일/감정"];
 
-  SRC="소스: <b>내장 샘플</b>"; ALL=emergency(); CAT=catMap(ALL); catTable(CAT); const first=[...CAT.keys()][0]; setCat(first);
-})();
-document.getElementById('search').oninput=applySearch;
-document.getElementById('grid').onclick=e=>{const t=e.target.closest('.tile'); if(!t)return; const emo=t.dataset.emoji||''; if(emo){document.getElementById('copyOut').value=emo; copyTxt(emo)}};
-document.getElementById('btnCopy').onclick=()=>{const v=document.getElementById('copyOut').value||''; if(v) copyTxt(v)};
-</script>
-</body></html>
+    const UI = {
+      search:   document.getElementById('search'),
+      copyOut:  document.getElementById('copyOut'),
+      btnCopy:  document.getElementById('btnCopy'),
+      status:   document.getElementById('status'),
+      grid:     document.getElementById('grid'),
+      catBody:  document.getElementById('catBody'),
+      toast:    document.getElementById('toast'),
+    };
+
+    const showStatus = (m)=>{ UI.status.style.display='block'; UI.status.innerHTML = m; };
+    const hideStatus = ()=>{ UI.status.style.display='none'; UI.status.textContent = ''; };
+    const toast = (t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'), 900); };
+
+    const twemojiParse = (el)=> window.twemoji?.parse(el, {
+      base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png"
+    });
+
+    const codeToEmoji = (code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
+    const pick = (obj, keys)=>{ for(const k of keys){ if(obj[k]!=null && obj[k]!=="") return obj[k];
+      const k2 = Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2 && obj[k2]!=null && obj[k2]!=="") return obj[k2]; } return ''; };
+
+    const CAT_ORDER = ["Smileys & Emotion","People & Body","Animals & Nature","Food & Drink","Travel & Places","Activities","Objects","Symbols","Flags"];
+    const KO = {"Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연","Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동","Objects":"사물","Symbols":"기호","Flags":"국기"};
+    const label = (raw)=> KO[raw] || raw || "기타";
+
+    // 상태
+    let BUILD = null, SPRITE_MAP = null, SUPPORT_HINTS = null;
+    let ALL_ITEMS = [];      // 모든 아이템(인라인 + 외부 로드 병합)
+    let CAT_MAP   = new Map();
+    let ACTIVE_CAT = null;
+    let BASE_LIST = [], VIEW_LIST = [];
+
+    // 간단 fetch
+    async function fetchJSON(url){
+      try{ const r = await fetch(url, { cache:"no-cache" }); if(r.ok) return await r.json(); } catch(_){}
+      return null;
+    }
+
+    /* =========================
+       1) 정규화 & 카테고리 구성
+    ==========================*/
+    function normalizeItems(root){
+      const out=[]; const seen=new Set();
+      (function walk(node, inherited=''){
+        if(!node) return;
+        if(Array.isArray(node)){ for(const v of node) walk(v, inherited); return; }
+        if(typeof node!=='object') return;
+
+        const group = pick(node, ['group','category','major','cat','section','type']) || inherited;
+        if (Array.isArray(node.items)) { for(const v of node.items) walk(v, group); }
+
+        const code = pick(node, ['code','hex','u','unified','unicode','codepoint','cp']);
+        const emojiChar = node.emoji || (code ? codeToEmoji(code) : '');
+
+        if (emojiChar || code){
+          const key = (code || emojiChar);
+          if(seen.has(key)) return; seen.add(key);
+
+          // name_* 합치기
+          const nameFields = Object.keys(node).filter(k=> /^name[_-]/i.test(k) || k==='name' );
+          const names = nameFields.map(k=> String(node[k]) ).filter(Boolean);
+          const primary =
+            pick(node, ['name_ko','name_kr','name_korean','name']) ||
+            pick(node, ['name_en','label','cldr','short_name','id']) || '';
+
+          out.push({
+            group: group || pick(node, ['group','category','major','cat']) || '기타',
+            name: primary,
+            nameText: [primary, ...names].join(' ').trim().toLowerCase(), // 검색 대상
+            code: (code||'').toUpperCase(),
+            emoji: emojiChar,
+            png: pick(node, ['png','pngUrl','url','image','img']),
+          });
+        }else{
+          for(const v of Object.values(node)) if(v && typeof v==='object') walk(v, group);
+        }
+      })(root, '');
+      return out;
+    }
+
+    function rebuildCatMap(items){
+      const m=new Map();
+      for(const it of items){
+        const c = it.group || '기타';
+        if(!m.has(c)) m.set(c, []);
+        m.get(c).push(it);
+      }
+      // 카테고리별 정렬(선택): 코드/이름 기준
+      for(const [k,arr] of m.entries()){
+        arr.sort((a,b)=> (a.name||'').localeCompare(b.name||'', 'ko'));
+      }
+      return m;
+    }
+
+    function buildCategoryTable(map){
+      const tbody = UI.catBody; tbody.innerHTML = "";
+      const cats = Array.from(map.keys())
+        .sort((a,b)=>(CAT_ORDER.indexOf(a)===-1?999:CAT_ORDER.indexOf(a))-(CAT_ORDER.indexOf(b)===-1?999:CAT_ORDER.indexOf(b)));
+      const cols = (innerWidth<=720) ? 3 : 5;
+
+      for(let i=0;i<cats.length;i+=cols){
+        const tr=document.createElement('tr');
+        for(const cat of cats.slice(i,i+cols)){
+          const td=document.createElement('td');
+          const btn=document.createElement('button');
+          btn.className="cat-btn"; btn.dataset.cat = cat;
+
+          const em=document.createElement('span'); em.className="cat-emo";
+          const sample = (map.get(cat)||[])[0]; em.textContent = sample?.emoji || "😀";
+
+          const la=document.createElement('span'); la.className="cat-lab"; la.textContent = label(cat);
+
+          btn.append(em, la); td.appendChild(btn); tr.appendChild(td);
+        }
+        while(tr.children.length<cols) tr.appendChild(document.createElement('td'));
+        tbody.appendChild(tr);
+      }
+      twemojiParse(tbody);
+      tbody.onclick = (e)=>{
+        const b = e.target.closest('.cat-btn'); if(!b) return;
+        setActiveCategory(b.dataset.cat);
+      };
+    }
+
+    /* =========================
+       2) 렌더러(스프라이트 > PNG > Twemoji)
+    ==========================*/
+    function hasSprite(it){
+      return SPRITE_MAP && (SPRITE_MAP[it.code] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[it.code]));
+    }
+    function getSpriteRec(it){
+      return (SPRITE_MAP && (SPRITE_MAP[it.code] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[it.code]))) || null;
+    }
+
+    function makeTile(it){
+      const t=document.createElement('div'); t.className='tile'; t.title=it.name || it.code || '';
+
+      // 1) 스프라이트
+      if(hasSprite(it)){
+        const rec=getSpriteRec(it);
+        const sheet=(rec.sheet||rec.s||rec.sprite||'emoji-top500-1.webp');
+        const bx=-(rec.x||rec.left||0), by=-(rec.y||rec.top||0);
+        const bw= rec.w||rec.width || 72, bh = rec.h||rec.height || 72;
+        t.style.backgroundImage = `url(${SPRITES_BASE}${sheet})`;
+        t.style.backgroundPosition = `${bx}px ${by}px`;
+        t.style.backgroundRepeat = "no-repeat";
+        t.style.width = bw+"px"; t.style.height = bh+"px";
+        t.dataset.emoji = it.emoji;
+        return t;
+      }
+
+      // 2) PNG(개별 파일)
+      if(it.png && !(SUPPORT_HINTS?.block?.includes(it.code))){
+        const img=document.createElement('img'); img.loading='lazy'; img.decoding='async';
+        img.src = it.png; img.alt = it.name || it.code || '';
+        t.appendChild(img); t.dataset.emoji = it.emoji; return t;
+      }
+
+      // 3) Twemoji PNG(최후): 타일 단위 파싱
+      const s=document.createElement('span'); s.textContent = it.emoji || codeToEmoji(it.code); s.style.fontSize="40px";
+      t.appendChild(s); twemojiParse(t);
+      t.dataset.emoji = it.emoji || '';
+      return t;
+    }
+
+    function renderChunked(list){
+      UI.grid.innerHTML = "";
+      let idx = 0;
+
+      // 첫 화면 페인트
+      const first = list.slice(0, FIRST_CHUNK);
+      const f1 = document.createDocumentFragment();
+      for(const it of first) f1.appendChild(makeTile(it));
+      UI.grid.appendChild(f1);
+      idx = FIRST_CHUNK;
+
+      // 이후 스크롤에 따라 끝까지 로드
+      const sentinel = document.createElement('div');
+      UI.grid.appendChild(sentinel);
+      const io = new IntersectionObserver((entries)=>{
+        if(!entries.some(e=>e.isIntersecting)) return;
+        if(idx >= list.length){ io.disconnect(); return; }
+        const part = list.slice(idx, idx + NEXT_CHUNK);
+        const frag = document.createDocumentFragment();
+        for(const it of part) frag.appendChild(makeTile(it));
+        UI.grid.insertBefore(frag, sentinel);
+        idx += NEXT_CHUNK;
+      }, { rootMargin:"900px" });
+      io.observe(sentinel);
+    }
+
+    /* =========================
+       3) 카테고리/검색
+    ==========================*/
+    function setActiveCategory(cat){
+      ACTIVE_CAT = cat;
+      document.querySelectorAll('.cat-btn').forEach(b=> b.classList.toggle('active', b.dataset.cat===cat));
+      BASE_LIST = CAT_MAP.get(cat) || [];
+      applySearch();
+    }
+
+    function applySearch(){
+      const q = UI.search.value.trim().toLowerCase();
+      VIEW_LIST = !q ? BASE_LIST : BASE_LIST.filter(it => (it.nameText || it.name || '').includes(q));
+      renderChunked(VIEW_LIST);
+      showStatus(`카테고리: <b>${label(ACTIVE_CAT)}</b> · 항목: <b>${VIEW_LIST.length.toLocaleString()}</b>`);
+    }
+
+    /* =========================
+       4) 데이터 로드(인라인 → 외부)
+    ==========================*/
+    async function hydrateExternalData(){
+      // 외부 파일 선로딩(다음 클릭에 즉시 반응하도록 캐시)
+      fetch(DATA_BASE + 'build.json').catch(()=>{});
+      fetch(SPRITES_BASE + 'SPRITE_MAP.json').catch(()=>{});
+      fetch(SPRITES_BASE + 'SUPPORT_HINTS.json').catch(()=>{});
+    }
+
+    async function loadExternalIfNeeded(){
+      if(BUILD && CAT_MAP.size>1) return true;   // 이미 외부 병합 끝
+      // 외부 스냅샷 로드
+      BUILD = await fetchJSON(DATA_BASE + 'build.json');
+      SPRITE_MAP = await fetchJSON(SPRITES_BASE + 'SPRITE_MAP.json') || SPRITE_MAP;
+      SUPPORT_HINTS = await fetchJSON(SPRITES_BASE + 'SUPPORT_HINTS.json') || SUPPORT_HINTS;
+
+      if(!BUILD) return false;
+
+      const root = BUILD.items || BUILD.emojis || BUILD.data || BUILD.rows || BUILD;
+      const ext  = Array.isArray(root) ? normalizeItems(root) : normalizeItems([root]);
+      // 인라인(스마일/감정) 중복 제거 후 병합
+      const seen = new Set(ALL_ITEMS.map(x=>x.code||x.emoji));
+      const merged = ALL_ITEMS.slice();
+      for(const it of ext){
+        const key = it.code || it.emoji;
+        if(!seen.has(key)){ seen.add(key); merged.push(it); }
+      }
+      ALL_ITEMS = merged;
+      CAT_MAP   = rebuildCatMap(ALL_ITEMS);
+      buildCategoryTable(CAT_MAP);
+      return true;
+    }
+
+    /* =========================
+       5) 복사/이벤트
+    ==========================*/
+    async function copyToClipboard(text){
+      try{ await navigator.clipboard.writeText(text); toast(); }
+      catch(_){ UI.copyOut.value=text; UI.copyOut.select(); document.execCommand('copy'); toast(); }
+    }
+    UI.search.addEventListener('input', applySearch);
+    UI.grid.addEventListener('click', (e)=>{
+      const t=e.target.closest('.tile'); if(!t) return;
+      const emoji=t.dataset.emoji||''; if(!emoji) return;
+      UI.copyOut.value = emoji; copyToClipboard(emoji);
+    });
+    UI.btnCopy.addEventListener('click', ()=>{ const v=UI.copyOut.value||''; if(v) copyToClipboard(v); });
+    window.addEventListener('resize', ()=>{
+      if(!CAT_MAP.size) return;
+      buildCategoryTable(CAT_MAP);
+      setActiveCategory(ACTIVE_CAT);
+    });
+
+    /* =========================
+       6) 부트스트랩
+    ==========================*/
+    (async function boot(){
+      showStatus("초기 데이터 준비 중…");
+
+      // (A) 인라인 스마일/감정 → 즉시 표시
+      const inlineSmile = JSON.parse(document.getElementById('INLINE_SMILE').textContent || "[]");
+      // 정규화(이름/코드 보정)
+      const normalizedSmile = normalizeItems(inlineSmile);
+      ALL_ITEMS = normalizedSmile;
+      CAT_MAP   = rebuildCatMap(ALL_ITEMS);
+      buildCategoryTable(CAT_MAP);
+
+      // 기본 진입: 스마일/감정(없으면 첫 카테고리)
+      const firstCat = [...CAT_MAP.keys()].find(k=>PREF.includes(k)) || [...CAT_MAP.keys()][0];
+      setActiveCategory(firstCat);
+      hideStatus();
+
+      // (B) 외부 데이터/스프라이트는 백그라운드에서 선로딩
+      hydrateExternalData();
+
+      // (C) 최초 클릭 시 외부 데이터 병합 (스마일/감정 외 클릭이면 즉시 로드)
+      document.getElementById('catBody').addEventListener('click', async (e)=>{
+        const btn = e.target.closest('.cat-btn'); if(!btn) return;
+        const cat = btn.dataset.cat;
+        if(!CAT_MAP.has(cat) || CAT_MAP.get(cat).length === 0 || (CAT_MAP.size === 1 && !PREF.includes(cat))){
+          showStatus("데이터 확장 로드 중…");
+          const ok = await loadExternalIfNeeded();
+          hideStatus();
+          if(ok) setActiveCategory(cat);
+        }
+      }, { capture:true });
+    })();
+  </script>
+</body>
+</html>
