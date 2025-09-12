@@ -6,11 +6,10 @@
   <title>프로 이모지 검색 — 카테고리 모드</title>
   <meta name="description" content="카테고리 기반 초고속 이모지 검색/복사" />
 
-  <!-- 성능 기본값: 초기 페인트량 최소화 -->
   <style>
     :root{
-      /* 성능팁 #6: 초기 페인트량 축소 */
-      --grid-width: 520px;    /* 필요 시 560px로 복귀 가능 */
+      /* 성능팁(#6) 반영 */
+      --grid-width: 520px;     /* 필요 시 560px로 복귀 가능 */
       --tile-size: 72px;
       --gap: 8px;
 
@@ -19,93 +18,75 @@
       --cat-cell-h: 48px;
       --cat-font: 15px;
     }
-
     *{ box-sizing: border-box; }
-    html, body{ margin:0; padding:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Apple Color Emoji, Noto Color Emoji, sans-serif; }
+    html, body{ margin:0; padding:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Apple Color Emoji,Noto Color Emoji,sans-serif; }
 
-    /* 상단 툴바: 검색 + 복사 */
+    /* 상단: 검색 + 복사 */
     #toolbar{
       position: sticky; top: 0; z-index: 9;
       background:#fff; border-bottom:1px solid #eee; backdrop-filter: blur(4px);
     }
     #toolbar .inner{
-      max-width: var(--cat-table-maxw);
-      margin: 0 auto; padding: 10px 12px; display: grid; gap: 8px;
-      grid-template-columns: 1fr auto;
-      align-items: center;
+      max-width: var(--cat-table-maxw); margin:0 auto; padding:10px 12px;
+      display:grid; gap:8px; grid-template-columns: 1fr auto; align-items:center;
     }
     #search{
-      width: 100%; height: 40px; border:1px solid #ddd; border-radius: 8px; padding: 0 12px; font-size: 15px;
+      width:100%; height:40px; border:1px solid #ddd; border-radius:8px; padding:0 12px; font-size:15px;
     }
-    #copyBox{
-      display:flex; gap:8px; align-items:center;
-    }
+    #copyBox{ display:flex; gap:8px; align-items:center; }
     #copyOut{
-      width: 160px; height: 40px; border:1px solid #ddd; border-radius:8px; padding:0 12px; font-size:16px;
+      width:160px; height:40px; border:1px solid #ddd; border-radius:8px; padding:0 12px; font-size:16px;
     }
-    #btnCopy{
-      height: 40px; padding: 0 14px; border: 1px solid #333; background: #111; color:#fff; border-radius:8px; cursor: pointer;
-    }
+    #btnCopy{ height:40px; padding:0 14px; border:1px solid #333; background:#111; color:#fff; border-radius:8px; cursor:pointer; }
 
     /* 카테고리 표 */
     #catTableWrap{
       position: sticky; top: 60px; z-index: 8; /* 검색바 아래 고정 */
-      background: #fff; border-bottom: 1px solid #eee;
+      background:#fff; border-bottom:1px solid #eee;
     }
-    #catTableWrap .inner{
-      max-width: var(--cat-table-maxw); margin: 0 auto; padding: 8px 12px;
-    }
-    table.cat-table{
-      width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--cat-font);
-    }
+    #catTableWrap .inner{ max-width: var(--cat-table-maxw); margin:0 auto; padding:8px 12px; }
+    table.cat-table{ width:100%; table-layout:fixed; border-collapse:collapse; font-size:var(--cat-font); }
     table.cat-table td{ padding:0; border:1px solid #f1f1f1; }
     .cat-btn{
-      width: 100%; height: var(--cat-cell-h); display: grid; grid-template-columns: 28px 1fr;
-      align-items: center; gap: 8px; padding: 8px 10px; border: 0; background: #fff; cursor: pointer;
+      width:100%; height:var(--cat-cell-h); display:grid; grid-template-columns:28px 1fr;
+      align-items:center; gap:8px; padding:8px 10px; border:0; background:#fff; cursor:pointer;
     }
     .cat-btn:hover{ background:#fafafa; }
-    .cat-btn.active{ outline: 2px solid rgba(0,0,0,0.08); background: #f9f9ff; }
+    .cat-btn.active{ outline:2px solid rgba(0,0,0,.08); background:#f9f9ff; }
     .cat-emoji{ width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; font-size:20px; line-height:1; }
     .cat-label{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:left; }
 
     /* 그리드 */
-    #gridWrap{ max-width: var(--grid-width); margin: 12px auto 60px; padding: 0 8px; }
+    #gridWrap{ max-width:var(--grid-width); margin:12px auto 60px; padding:0 8px; }
     #grid{
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(var(--tile-size), 1fr));
-      gap: var(--gap);
-      align-items: start;
+      display:grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-size), 1fr));
+      gap:var(--gap); align-items:start;
     }
     .tile{
-      width: var(--tile-size); height: var(--tile-size);
-      display: inline-flex; align-items:center; justify-content:center;
-      border-radius: 10px; border: 1px solid #eee; background:#fff;
-      cursor: pointer; user-select: none;
-      transition: transform .04s ease;
+      width:var(--tile-size); height:var(--tile-size);
+      display:inline-flex; align-items:center; justify-content:center;
+      border-radius:10px; border:1px solid #eee; background:#fff;
+      cursor:pointer; user-select:none; transition:transform .04s ease;
     }
-    .tile:hover{ transform: translateY(-1px); background:#fafafa; }
-    .tile img{ width: var(--tile-size); height: var(--tile-size); image-rendering: -webkit-optimize-contrast; }
+    .tile:hover{ transform:translateY(-1px); background:#fafafa; }
+    .tile img{ width:var(--tile-size); height:var(--tile-size); image-rendering:-webkit-optimize-contrast; }
 
-    /* 토스트 */
+    /* 토스트 / 상태 */
     #toast{
-      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20;
-      background: rgba(0,0,0,0.8); color:#fff; padding:8px 12px; border-radius: 20px; font-size:14px; opacity:0; pointer-events:none; transition: opacity .2s ease;
+      position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:20;
+      background:rgba(0,0,0,.8); color:#fff; padding:8px 12px; border-radius:20px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease;
     }
-    #toast.show{ opacity: 1; }
-
-    /* 빈 상태/에러 메시지 */
-    #status{
-      max-width: 720px; margin: 20px auto; padding: 12px; color:#444; text-align:center; display:none;
-    }
+    #toast.show{ opacity:1; }
+    #status{ max-width:720px; margin:20px auto; padding:12px; color:#444; text-align:center; display:none; }
 
     @media (max-width: 720px){
-      :root{ --cat-font: 14px; }
+      :root{ --cat-font:14px; }
       #toolbar .inner{ grid-template-columns: 1fr; }
-      #catTableWrap{ top: 112px; } /* 모바일에서 검색바 높이만큼 보정 */
+      #catTableWrap{ top:112px; }
     }
   </style>
 
-  <!-- Twemoji (PNG 강제, SVG 비활성) -->
+  <!-- Twemoji (PNG 강제, SVG OFF) -->
   <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -127,97 +108,76 @@
     </div>
   </section>
 
-  <!-- 상태 영역 -->
+  <!-- 상태/토스트/그리드 -->
   <div id="status"></div>
-
-  <!-- 그리드 영역 -->
-  <main id="gridWrap">
-    <section id="grid"></section>
-  </main>
-
-  <!-- 토스트 -->
+  <main id="gridWrap"><section id="grid"></section></main>
   <div id="toast">복사 완료!</div>
 
   <!-- 앱 스크립트 -->
   <script type="module">
-    /* -----------------------------
-       0) 유틸 & 전역
-    ------------------------------*/
+    /* -------------------- 0) 전역/유틸 -------------------- */
     const UI = {
-      search: document.getElementById('search'),
-      copyOut: document.getElementById('copyOut'),
-      btnCopy: document.getElementById('btnCopy'),
-      status: document.getElementById('status'),
-      grid: document.getElementById('grid'),
+      search:   document.getElementById('search'),
+      copyOut:  document.getElementById('copyOut'),
+      btnCopy:  document.getElementById('btnCopy'),
+      status:   document.getElementById('status'),
+      grid:     document.getElementById('grid'),
       catTbody: document.getElementById('catTbody'),
-      toast: document.getElementById('toast'),
+      toast:    document.getElementById('toast'),
     };
 
-    const PERF = {
-      CHUNK: 120,  // 성능팁 #6: 120~180 사이 권장
-    };
+    const PERF = { CHUNK: 120 }; // 성능팁: 120~180 권장
 
     let BUILD = null;
     let SPRITE_MAP = null;
     let SUPPORT_HINTS = null;
 
-    let CAT_MAP = null;      // Map<cat, items[]>
-    let ACTIVE_CAT = null;   // 현재 카테고리
-    let BASE_LIST = [];      // 현재 카테고리 원본 리스트
-    let VIEW_LIST = [];      // 검색 필터 반영 리스트
+    let CAT_MAP = null;     // Map<cat, items[]>
+    let ACTIVE_CAT = null;  // 현재 카테고리
+    let BASE_LIST = [];     // 카테고리 원본
+    let VIEW_LIST = [];     // 검색 반영
 
-    // 카테고리 한글 라벨 맵
+    // 스프라이트/데이터의 "기준 경로" (어디서 로드했는지에 따라 달라짐)
+    let SPRITES_BASE = '/sprites/';
+
     const koLabelMap = {
-      "Smileys & Emotion": "스마일/감정",
-      "People & Body": "피플/바디",
-      "Animals & Nature": "동물/자연",
-      "Food & Drink": "음식/음료",
-      "Travel & Places": "여행/장소",
-      "Activities": "활동",
-      "Objects": "사물",
-      "Symbols": "기호",
-      "Flags": "국기"
+      "Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연",
+      "Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동",
+      "Objects":"사물","Symbols":"기호","Flags":"국기"
     };
     const pickLabel = (raw) => koLabelMap[raw] || raw || "기타";
 
-    // 코드포인트 -> 실제 문자
-    const codeToEmoji = (code) => {
-      try{
-        return String.fromCodePoint(...String(code).split('-').map(h => parseInt(h,16)));
-      }catch(_){ return "❓"; }
-    };
+    const codeToEmoji = (code) => { try { return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); } catch(_){ return "❓"; } };
 
     const ensureTwemoji = (container) => {
       if (!window.twemoji) return;
       window.twemoji.parse(container, {
         base: "https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/",
         folder: "72x72",
-        ext: ".png" // PNG 강제 (SVG OFF)
+        ext: ".png" // PNG 강제
       });
     };
 
-    const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+    function showStatus(msg){ UI.status.style.display='block'; UI.status.textContent=msg; }
+    function hideStatus(){ UI.status.style.display='none'; UI.status.textContent=''; }
+    function showToast(text="복사 완료!"){ UI.toast.textContent=text; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); }
 
-    function showStatus(msg){
-      UI.status.style.display = 'block';
-      UI.status.textContent = msg;
+    // Repo 추정(유저/프로젝트 페이지 모두 대비)
+    function guessRepo(){
+      const host = location.hostname; // eg) mikejeong247-cmd.github.io
+      const user = host.replace('.github.io','');
+      // project page면 /repo-name/ 이 붙음, user page면 빈 문자열
+      const pathParts = location.pathname.split('/').filter(Boolean);
+      const repo = pathParts.length>0 ? pathParts[0] : `${user}.github.io`;
+      return { user, repo };
     }
-    function hideStatus(){
-      UI.status.style.display = 'none';
-      UI.status.textContent = '';
-    }
+    function joinURL(base, file){ return new URL(file, base).toString(); }
 
-    function showToast(text="복사 완료!"){
-      UI.toast.textContent = text;
-      UI.toast.classList.add('show');
-      setTimeout(()=>UI.toast.classList.remove('show'), 900);
-    }
-
-    // 안전 fetch (경로 후보 순회)
+    // 안전 fetch 후보 탐색(순차)
     async function getJSONFromCandidates(paths){
       for(const p of paths){
         try{
-          const res = await fetch(p, {cache: "no-cache"});
+          const res = await fetch(p, {cache:"no-cache"});
           if(res.ok){
             const j = await res.json();
             j.__src = p;
@@ -225,29 +185,60 @@
           }
         }catch(_){}
       }
-      throw new Error("모든 경로에서 로드 실패: " + paths.join(", "));
+      throw new Error("모든 경로 실패: " + paths.join(" | "));
     }
 
-    /* -----------------------------
-       1) 데이터 로드
-    ------------------------------*/
+    /* -------------------- 1) 데이터 로드 -------------------- */
     async function loadData(){
-      // GitHub Pages 사용자/프로젝트 페이지 모두 대응
-      const buildPaths = ["/data/build.json","data/build.json","./data/build.json","build.json"];
-      const spritePaths = ["/sprites/SPRITE_MAP.json","sprites/SPRITE_MAP.json","./sprites/SPRITE_MAP.json"];
-      const hintPaths   = ["/sprites/SUPPORT_HINTS.json","sprites/SUPPORT_HINTS.json","./sprites/SUPPORT_HINTS.json"];
+      const { user, repo } = guessRepo();
 
-      BUILD = await getJSONFromCandidates(buildPaths).catch(e=>{
-        showStatus("데이터 로드 실패: build.json을 찾을 수 없습니다.");
-        console.error(e);
-        return null;
-      });
-      if(!BUILD) return false;
+      // 1) 현재 경로 기준(프로젝트/유저 페이지 모두 OK)
+      const localPrefix = location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^\/]+$/,'');
+      const localBuild = [ `${localPrefix}data/build.json`, "/data/build.json", "data/build.json", "./data/build.json" ];
 
-      // 선택 로드(없어도 동작)
-      SPRITE_MAP = await getJSONFromCandidates(spritePaths).catch(()=>null);
-      SUPPORT_HINTS = await getJSONFromCandidates(hintPaths).catch(()=>null);
-      return true;
+      // 2) GitHub CDN/Raw (main/master/gh-pages 모두 후보)
+      const branches = ["main","master","gh-pages"];
+      const cdnBuild = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/data/build.json`);
+      const rawBuild = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/data/build.json`);
+      const buildCandidates = [...localBuild, ...cdnBuild, ...rawBuild];
+
+      BUILD = await getJSONFromCandidates(buildCandidates).catch(()=>null);
+      if(!BUILD){
+        // 마지막 안전망: 비상 샘플(소량)로 UI만 띄움
+        BUILD = {
+          __fallback: true,
+          items: [
+            { group:"Smileys & Emotion", name:"grinning face", code:"1F600" },
+            { group:"People & Body",     name:"person",        code:"1F9D1" },
+            { group:"Animals & Nature",  name:"cat face",      code:"1F431" },
+            { group:"Food & Drink",      name:"hamburger",     code:"1F354" },
+            { group:"Activities",        name:"soccer ball",   code:"26BD"  },
+          ]
+        };
+        showStatus("⚠️ build.json을 찾지 못해 임시 데이터로 표시합니다. (Actions 실행 또는 /data/build.json 존재 확인 필요)");
+      } else {
+        hideStatus();
+      }
+
+      // 스프라이트/힌트도 동일한 방식으로 후보 탐색
+      const localSprite  = [ `${localPrefix}sprites/SPRITE_MAP.json`, "/sprites/SPRITE_MAP.json", "sprites/SPRITE_MAP.json", "./sprites/SPRITE_MAP.json" ];
+      const cdnSprite    = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SPRITE_MAP.json`);
+      const rawSprite    = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SPRITE_MAP.json`);
+      SPRITE_MAP = await getJSONFromCandidates([...localSprite, ...cdnSprite, ...rawSprite]).catch(()=>null);
+
+      const localHints   = [ `${localPrefix}sprites/SUPPORT_HINTS.json`, "/sprites/SUPPORT_HINTS.json", "sprites/SUPPORT_HINTS.json", "./sprites/SUPPORT_HINTS.json" ];
+      const cdnHints     = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SUPPORT_HINTS.json`);
+      const rawHints     = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SUPPORT_HINTS.json`);
+      SUPPORT_HINTS = await getJSONFromCandidates([...localHints, ...cdnHints, ...rawHints]).catch(()=>null);
+
+      // 스프라이트 베이스 경로 계산
+      if (SPRITE_MAP && SPRITE_MAP.__src) {
+        // JSON이 어디서 왔는지 기준으로 시트 경로 생성
+        const base = SPRITE_MAP.__src.replace(/SPRITE_MAP\.json.*$/,'');
+        SPRITES_BASE = base; // 예: /sprites/  또는  https://cdn.jsdelivr.net/.../sprites/
+      } else {
+        SPRITES_BASE = `${localPrefix}sprites/`;
+      }
     }
 
     function extractItems(build){
@@ -256,28 +247,13 @@
       if(build.emojis && Array.isArray(build.emojis)) return build.emojis;
       if(build.data && Array.isArray(build.data)) return build.data;
       if(build.rows && Array.isArray(build.rows)) return build.rows;
-      // 낯선 구조면 키를 모아서 객체 배열로 가정
       return Object.values(build).filter(v=>typeof v==='object');
     }
-
-    function extractCategory(item){
-      return item.group || item.category || item.major || item.cat || "기타";
-    }
-    function extractName(item){
-      return item.name || item.label || item.cldr || item.short_name || item.id || item.code || "";
-    }
-    function extractKeywords(item){
-      const k = item.keywords || item.tags || item.search || "";
-      return Array.isArray(k) ? k.join(" ") : String(k || "");
-    }
-    function extractCode(item){
-      return (item.code || item.hex || item.u || "").toUpperCase();
-    }
-    function extractEmojiChar(item){
-      if (item.emoji) return item.emoji;
-      const c = extractCode(item);
-      return c ? codeToEmoji(c) : "❓";
-    }
+    const extractCategory = (it)=> it.group || it.category || it.major || it.cat || "기타";
+    const extractName     = (it)=> it.name || it.label || it.cldr || it.short_name || it.id || it.code || "";
+    const extractKeywords = (it)=> { const k=it.keywords||it.tags||it.search||""; return Array.isArray(k)?k.join(" "):String(k||""); };
+    const extractCode     = (it)=> (it.code||it.hex||it.u||"").toUpperCase();
+    const extractEmojiChar= (it)=> it.emoji ? it.emoji : (extractCode(it)?codeToEmoji(extractCode(it)):"❓");
 
     function groupByCategory(items){
       const map = new Map();
@@ -289,20 +265,15 @@
       return map;
     }
 
-    /* -----------------------------
-       2) 카테고리 표 생성
-    ------------------------------*/
+    /* -------------------- 2) 카테고리 표 -------------------- */
     function buildCategoryTable(catMap){
-      UI.catTbody.innerHTML = "";
+      const tbody = UI.catTbody;
+      tbody.innerHTML = "";
 
       const cats = Array.from(catMap.keys());
-      const order = [
-        "Smileys & Emotion","People & Body","Animals & Nature",
-        "Food & Drink","Travel & Places","Activities","Objects","Symbols","Flags"
-      ];
-      cats.sort((a,b) => (order.indexOf(a)===-1?999:order.indexOf(a)) - (order.indexOf(b)===-1?999:order.indexOf(b)));
+      const order = ["Smileys & Emotion","People & Body","Animals & Nature","Food & Drink","Travel & Places","Activities","Objects","Symbols","Flags"];
+      cats.sort((a,b)=>(order.indexOf(a)===-1?999:order.indexOf(a))-(order.indexOf(b)===-1?999:order.indexOf(b)));
 
-      // 반응형: 데스크톱 5열 / 모바일 3열
       const columns = (window.innerWidth <= 720) ? 3 : 5;
 
       for(let i=0;i<cats.length;i+=columns){
@@ -311,253 +282,173 @@
         for(const cat of slice){
           const td = document.createElement("td");
           const btn = document.createElement("button");
-          btn.className = "cat-btn";
-          btn.setAttribute("data-cat", cat);
+          btn.className="cat-btn"; btn.setAttribute("data-cat", cat);
 
           const sample = catMap.get(cat)[0];
           const em = document.createElement("span");
-          em.className = "cat-emoji";
-          em.textContent = extractEmojiChar(sample);
+          em.className="cat-emoji"; em.textContent = extractEmojiChar(sample);
 
           const label = document.createElement("span");
-          label.className = "cat-label";
-          label.textContent = pickLabel(cat);
+          label.className="cat-label"; label.textContent = pickLabel(cat);
 
-          btn.appendChild(em);
-          btn.appendChild(label);
-          td.appendChild(btn);
-          tr.appendChild(td);
+          btn.appendChild(em); btn.appendChild(label);
+          td.appendChild(btn); tr.appendChild(td);
         }
-        if(slice.length < columns){
-          for(let k=0;k<columns-slice.length;k++){
-            tr.appendChild(document.createElement("td"));
-          }
-        }
-        UI.catTbody.appendChild(tr);
+        if(slice.length<columns) for(let k=0;k<columns-slice.length;k++){ tr.appendChild(document.createElement("td")); }
+        tbody.appendChild(tr);
       }
 
-      // 상단 표 이모지 → Twemoji로 컬러 강제
-      ensureTwemoji(UI.catTbody);
+      ensureTwemoji(tbody); // 상단 표 컬러 강제
 
-      // 클릭 핸들러 (이벤트 위임)
-      UI.catTbody.addEventListener("click", (e)=>{
+      tbody.addEventListener("click",(e)=>{
         const btn = e.target.closest(".cat-btn");
         if(!btn) return;
-        const cat = btn.getAttribute("data-cat");
-        setActiveCategory(cat);
+        setActiveCategory(btn.getAttribute("data-cat"));
       });
     }
 
-    /* -----------------------------
-       3) 렌더러
-       - 우선순위: 스프라이트 > PNG(로컬/스냅샷) > Twemoji(PNG)
-    ------------------------------*/
-    function hasSpriteFor(item){
+    /* -------------------- 3) 렌더러 -------------------- */
+    function hasSpriteFor(it){
       if(!SPRITE_MAP) return false;
-      const code = extractCode(item);
+      const code = extractCode(it);
       if(!code) return false;
-      const direct = SPRITE_MAP[code];
-      const alt = SPRITE_MAP.sprites && SPRITE_MAP.sprites[code];
-      return !!(direct || alt);
+      return !!(SPRITE_MAP[code] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[code]));
     }
-    function spriteRecord(item){
-      const code = extractCode(item);
+    function spriteRecord(it){
+      const code = extractCode(it);
       return (SPRITE_MAP && (SPRITE_MAP[code] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[code]))) || null;
     }
 
-    function makeTile(item){
+    function makeTile(it){
       const tile = document.createElement("div");
       tile.className = "tile";
-      tile.title = extractName(item);
+      tile.title = extractName(it);
 
       // 1) 스프라이트
-      if (hasSpriteFor(item)) {
-        const rec = spriteRecord(item);
+      if (hasSpriteFor(it)) {
+        const rec = spriteRecord(it);
         if(rec){
-          const sheet = rec.sheet || rec.s || rec.sprite; // 파일명
+          const sheet = rec.sheet || rec.s || rec.sprite || "emoji-top500-1.webp";
           const bx = -(rec.x || rec.left || 0);
           const by = -(rec.y || rec.top  || 0);
           const bw = rec.w || rec.width  || parseInt(getComputedStyle(tile).width) || 72;
           const bh = rec.h || rec.height || parseInt(getComputedStyle(tile).height) || 72;
-          tile.style.backgroundImage = `url(${sheet && sheet.startsWith('emoji-') ? '/sprites/'+sheet : '/sprites/emoji-top500-1.webp'})`;
+          const sheetURL = joinURL(SPRITES_BASE, sheet);
+          tile.style.backgroundImage = `url(${sheetURL})`;
           tile.style.backgroundPosition = `${bx}px ${by}px`;
           tile.style.backgroundRepeat = "no-repeat";
           tile.style.width  = bw+"px";
           tile.style.height = bh+"px";
-          // 클릭-복사용 데이터
-          tile.dataset.emoji = extractEmojiChar(item);
+          tile.dataset.emoji = extractEmojiChar(it);
           return tile;
         }
       }
 
       // 2) PNG (build.json에 명시된 경우)
-      const pngUrl = item.png || item.pngUrl || item.url || null;
-      const blocked = !!(SUPPORT_HINTS && SUPPORT_HINTS.block && SUPPORT_HINTS.block.includes(extractCode(item)));
+      const pngUrl = it.png || it.pngUrl || it.url || null;
+      const blocked = !!(SUPPORT_HINTS && SUPPORT_HINTS.block && SUPPORT_HINTS.block.includes(extractCode(it)));
       if (pngUrl && !blocked) {
         const img = document.createElement("img");
-        img.loading = "lazy";
-        img.decoding = "async";
-        img.src = pngUrl;
-        img.alt = extractName(item);
+        img.loading="lazy"; img.decoding="async";
+        img.src = pngUrl; img.alt = extractName(it);
         tile.appendChild(img);
-        tile.dataset.emoji = extractEmojiChar(item);
+        tile.dataset.emoji = extractEmojiChar(it);
         return tile;
       }
 
-      // 3) Twemoji (PNG 강제, tofu 방지)
+      // 3) Twemoji (PNG 강제) — tofu 방지 최후 수단
       const span = document.createElement("span");
-      span.textContent = extractEmojiChar(item);
-      span.style.fontSize = "40px";
+      span.textContent = extractEmojiChar(it);
+      span.style.fontSize="40px";
       tile.appendChild(span);
       ensureTwemoji(tile);
-      tile.dataset.emoji = extractEmojiChar(item);
+      tile.dataset.emoji = extractEmojiChar(it);
       return tile;
     }
 
-    // 온디맨드 렌더 (성능팁 #6: CHUNK=120 기본)
     function renderListChunked(list){
-      UI.grid.innerHTML = ""; // 카테고리/검색 바뀔 때 리셋
+      UI.grid.innerHTML = ""; // 리셋
 
       const sentinel = document.createElement("div");
       let idx = 0;
 
       const renderChunk = ()=>{
         const part = list.slice(idx, idx + PERF.CHUNK);
-        if(part.length === 0){
-          // 더 이상 없음
-          return;
-        }
+        if(part.length===0) return;
         const frag = document.createDocumentFragment();
-        for(const it of part){
-          frag.appendChild(makeTile(it));
-        }
+        for(const it of part) frag.appendChild(makeTile(it));
         UI.grid.appendChild(frag);
         idx += PERF.CHUNK;
       };
 
-      // 초기 1회 페인트 최소화
+      // 초기 1회 페인트
       renderChunk();
       UI.grid.appendChild(sentinel);
 
       const io = new IntersectionObserver((entries)=>{
         for(const e of entries){
           if(!e.isIntersecting) continue;
-          if(idx < list.length){
-            renderChunk();
-          }else{
-            io.disconnect();
-          }
+          if(idx < list.length) renderChunk(); else io.disconnect();
         }
-      }, {rootMargin: "800px"});
+      }, {rootMargin:"800px"});
       io.observe(sentinel);
     }
 
-    /* -----------------------------
-       4) 카테고리/검색
-    ------------------------------*/
+    /* -------------------- 4) 카테고리/검색 -------------------- */
     function setActiveCategory(cat){
       ACTIVE_CAT = cat;
-
-      // UI 상태
-      document.querySelectorAll(".cat-btn").forEach(b=>{
-        b.classList.toggle("active", b.getAttribute("data-cat")===cat);
-      });
-
+      document.querySelectorAll(".cat-btn").forEach(b=>b.classList.toggle("active", b.getAttribute("data-cat")===cat));
       BASE_LIST = CAT_MAP.get(cat) || [];
-      applySearch(); // 검색조건 반영 렌더
+      applySearch();
     }
-
     function applySearch(){
       const q = UI.search.value.trim().toLowerCase();
-      if(!q){
-        VIEW_LIST = BASE_LIST;
-      }else{
+      if(!q){ VIEW_LIST = BASE_LIST; }
+      else{
         VIEW_LIST = BASE_LIST.filter(it=>{
           const name = extractName(it).toLowerCase();
           const kws  = extractKeywords(it).toLowerCase();
           return name.includes(q) || kws.includes(q);
         });
       }
-
       hideStatus();
-      if(VIEW_LIST.length === 0){
-        showStatus("해당 조건에 맞는 이모지가 없습니다.");
-      }
+      if(VIEW_LIST.length===0) showStatus("해당 조건에 맞는 이모지가 없습니다.");
       renderListChunked(VIEW_LIST);
     }
 
-    /* -----------------------------
-       5) 복사 동작
-    ------------------------------*/
+    /* -------------------- 5) 복사 -------------------- */
     async function copyToClipboard(text){
-      try{
-        await navigator.clipboard.writeText(text);
-        showToast("복사 완료!");
-      }catch(_){
-        // iOS 등 호환: input에 넣어 선택-복사
-        UI.copyOut.value = text;
-        UI.copyOut.select();
-        document.execCommand('copy');
-        showToast("복사 완료!");
-      }
+      try{ await navigator.clipboard.writeText(text); showToast("복사 완료!"); }
+      catch(_){ UI.copyOut.value=text; UI.copyOut.select(); document.execCommand('copy'); showToast("복사 완료!"); }
     }
 
-    /* -----------------------------
-       6) 부트스트랩
-       - 성능팁 #6 반영:
-         · 초기 카테고리: 스마일/감정
-         · CHUNK=120
-         · --grid-width=520px
-    ------------------------------*/
+    /* -------------------- 6) 부트스트랩 -------------------- */
     (async function boot(){
       showStatus("데이터 로드 중…");
-      const ok = await loadData();
-      if(!ok){ return; }
+      await loadData();
 
       const items = extractItems(BUILD);
-      if(!items || items.length === 0){
-        showStatus("데이터가 비어 있습니다.");
-        return;
-      }
+      if(!items || items.length===0){ showStatus("데이터가 비어 있습니다."); return; }
 
       CAT_MAP = groupByCategory(items);
       buildCategoryTable(CAT_MAP);
 
-      // 초기 카테고리 선택: 스마일/감정 우선
+      // 초기 카테고리: 스마일/감정 우선
       const pref = ["Smileys & Emotion","스마일/감정"];
-      const firstCat = [...CAT_MAP.keys()].find(k => pref.includes(k)) || [...CAT_MAP.keys()][0];
+      const firstCat = [...CAT_MAP.keys()].find(k=>pref.includes(k)) || [...CAT_MAP.keys()][0];
       setActiveCategory(firstCat);
 
-      hideStatus();
+      if(!BUILD.__fallback) hideStatus(); // 실제 데이터면 상태 숨김
     })();
 
-    /* -----------------------------
-       7) 이벤트 바인딩
-    ------------------------------*/
-    // 검색 입력
-    UI.search.addEventListener('input', ()=>{
-      // 디바운스 없이도 CHUNK 렌더로 충분히 가볍게 동작
-      applySearch();
-    });
-
-    // 그리드 클릭 → 복사
+    /* -------------------- 7) 이벤트 -------------------- */
+    UI.search.addEventListener('input', ()=>applySearch());
     UI.grid.addEventListener('click', (e)=>{
-      const tile = e.target.closest('.tile');
-      if(!tile) return;
-      const emoji = tile.dataset.emoji || '';
-      if(!emoji) return;
-      UI.copyOut.value = emoji;
-      copyToClipboard(emoji);
+      const tile = e.target.closest('.tile'); if(!tile) return;
+      const emoji = tile.dataset.emoji || ''; if(!emoji) return;
+      UI.copyOut.value = emoji; copyToClipboard(emoji);
     });
-
-    // 복사 버튼
-    UI.btnCopy.addEventListener('click', ()=>{
-      const val = UI.copyOut.value || '';
-      if(!val) return;
-      copyToClipboard(val);
-    });
-
-    // 반응형: 리사이즈 시 카테고리 표 재생성(열 수 변경)
+    UI.btnCopy.addEventListener('click', ()=>{ const v=UI.copyOut.value||''; if(v) copyToClipboard(v); });
     window.addEventListener('resize', ()=>{
       if(!CAT_MAP) return;
       buildCategoryTable(CAT_MAP);
