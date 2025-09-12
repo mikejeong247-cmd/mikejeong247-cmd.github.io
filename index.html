@@ -114,7 +114,7 @@
     licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Unicode data © The Unicode Consortium.
   </footer>
 
-  <!-- 🔹 인라인 즉시 데이터: "Smileys & Emotion" 32개 (첫 화면 즉시 노출용) -->
+  <!-- ✅ 인라인 즉시 데이터: "Smileys & Emotion" 32개 (첫 화면 즉시 렌더용) -->
   <script type="application/json" id="INLINE_SMILEYS">[
     {"group":"Smileys & Emotion","name_en":"grinning face","name_ko":"활짝 웃는 얼굴","emoji":"😀"},
     {"group":"Smileys & Emotion","name_en":"grinning face with big eyes","name_ko":"활짝 웃는 얼굴(눈 큼)","emoji":"😃"},
@@ -150,9 +150,9 @@
   ]</script>
 
   <script type="module">
-    /* =========================================================
+    /* =========================
        설정
-    ========================================================= */
+    ========================== */
     const DATA_URL = (location.pathname.replace(/[^/]+$/, '') || '/') + 'data/build.json'; // 정적 스냅샷(있으면 최우선)
     const GSHEET = {
       id : '1-W_w24LxJGwqpsSW1B8pqCQGMWF_TV-Ip5L5XqDG68Q',
@@ -160,7 +160,7 @@
       query: 'select *'
     };
 
-    // ✅ 첫 화면은 반드시 Smileys만 보이도록
+    // ✅ 첫 화면은 반드시 스마일/감정만 보이도록
     const ACTIVE_PREF = "Smileys & Emotion";
     const INITIAL_PER_CAT = 32;      // 각 카테고리 첫 노출 수(요청 32)
     const MORE_CHUNK      = 240;     // 더보기당 증가량
@@ -178,9 +178,9 @@
     };
     const L10N = LABELS[LOCALE] || LABELS.en;
 
-    /* =========================================================
+    /* =========================
        DOM
-    ========================================================= */
+    ========================== */
     const UI = {
       search:   document.getElementById('search'),
       copyOut:  document.getElementById('copyOut'),
@@ -199,9 +199,9 @@
     const toast=(t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
     const twParse = (el)=> window.twemoji?.parse(el,{ base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png" });
 
-    /* =========================================================
+    /* =========================
        유틸
-    ========================================================= */
+    ========================== */
     const lower = (s)=> String(s||'').toLowerCase();
     const codeToEmoji = (code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
     const pick = (obj, keys)=>{ for(const k of keys){ if(obj[k]!=null && obj[k]!=='') return obj[k]; const k2=Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2 && obj[k2]!=null && obj[k2]!=='') return obj[k2]; } return ''; };
@@ -219,9 +219,9 @@
       return `https://docs.google.com/spreadsheets/d/${GSHEET.id}/gviz/tq?tqx=out:json&gid=${encodeURIComponent(GSHEET.gid)}&tq=${tq}`;
     }
 
-    /* =========================================================
+    /* =========================
        정규화: name_* 만 검색에 사용
-    ========================================================= */
+    ========================== */
     function normalizeGeneric(root){
       const items = Array.isArray(root) ? root : (root.items||root.emojis||root.data||root.rows||[]);
       const out=[], seen=new Set();
@@ -233,7 +233,6 @@
         const emoji = r.emoji || (code ? codeToEmoji(code) : '');
         if(!emoji) continue;
 
-        // name_* 전부를 합치고, 현지화 우선 이름 선택
         const name_local =
           (LOCALE==='ko' && pick(r,['name_ko','ko','name-korean'])) ||
           (LOCALE==='ja' && pick(r,['name_ja','ja'])) ||
@@ -271,9 +270,9 @@
       }catch(_){ return null; }
     }
 
-    /* =========================================================
+    /* =========================
        전역 상태
-    ========================================================= */
+    ========================== */
     let ALL=[], BY_CAT=new Map();           // 카테고리별 전체
     let VIEW_BY_CAT=new Map();              // 화면 반영 상태(32개 + 더보기)
     let ACTIVE_CAT = ACTIVE_PREF;           // 현재 표시 카테고리(기본: 스마일/감정)
@@ -282,9 +281,9 @@
     function saveCache(arr){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(arr)); }catch(_){ } }
     function loadCache(){ try{ const raw=localStorage.getItem(CACHE_KEY); if(!raw) return null; const arr=JSON.parse(raw); return Array.isArray(arr)?arr:null; }catch(_){ return null; } }
 
-    /* =========================================================
+    /* =========================
        렌더: 칩/섹션/타일/표시 전환
-    ========================================================= */
+    ========================== */
     const DEFAULT_EMO = {
       "Smileys & Emotion":"😀","People & Body":"🧑","Animals & Nature":"🐱","Food & Drink":"🍔",
       "Travel & Places":"✈️","Activities":"⚽","Objects":"💡","Symbols":"♾","Flags":"🇰🇷"
@@ -302,7 +301,6 @@
         frag.appendChild(btn);
       }
       UI.chips.appendChild(frag);
-      // 활성 칩 표시
       UI.chips.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active', b.dataset.cat===ACTIVE_CAT));
     }
 
@@ -362,13 +360,10 @@
 
     function setActiveSection(cat){
       ACTIVE_CAT = cat;
-      // 칩 상태
       UI.chips.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active', b.dataset.cat===ACTIVE_CAT));
-      // 섹션 표시 제어: 선택한 카테고리만 보임
       document.querySelectorAll('.cat-section').forEach(sec=>{
         sec.classList.toggle('hidden', sec.dataset.cat!==ACTIVE_CAT);
       });
-      // 가시화된 섹션을 파싱
       const vis = document.getElementById(`sec-${slug(ACTIVE_CAT)}`);
       if(vis) twParse(vis);
     }
@@ -400,14 +395,13 @@
       updateSection(cat);
     }
 
-    /* =========================================================
+    /* =========================
        검색: name_* 전용(부분 일치, 한 글자 매칭)
-    ========================================================= */
+    ========================== */
     function onSearch(){
       const q = lower(UI.search.value);
       if(!q){
         UI.resultWrap.style.display='none';
-        // 검색 해제 시: 활성 섹션만 보이도록
         document.querySelectorAll('.cat-section').forEach(s=>s.classList.toggle('hidden', s.dataset.cat!==ACTIVE_CAT));
         const vis = document.getElementById(`sec-${slug(ACTIVE_CAT)}`); if(vis) twParse(vis);
         return;
@@ -423,14 +417,13 @@
       for(const it of hits){ frag.appendChild(makeTile(it)); }
       UI.resultGrid.appendChild(frag);
       UI.resultWrap.style.display='block';
-      // 카테고리 섹션은 숨김
       document.querySelectorAll('.cat-section').forEach(s=>s.classList.add('hidden'));
       twParse(UI.resultGrid);
     }
 
-    /* =========================================================
+    /* =========================
        데이터 → 카테고리 맵 갱신
-    ========================================================= */
+    ========================== */
     function rebuildFromALL(){
       BY_CAT.clear();
       for(const cat of CAT_ORDER) BY_CAT.set(cat, []);
@@ -445,14 +438,13 @@
       const cats = [...BY_CAT.keys()].sort((a,b)=>(CAT_ORDER.indexOf(a)===-1?999:CAT_ORDER.indexOf(a))-(CAT_ORDER.indexOf(b)===-1?999:CAT_ORDER.indexOf(b)));
       buildChips(cats);
       buildSections(cats);
-      // 활성 섹션 재적용
       setActiveSection(ACTIVE_CAT);
       hideStatus();
     }
 
-    /* =========================================================
-       부트스트랩 (Inline ▶ Data URL ▶ Sheet)
-    ========================================================= */
+    /* =========================
+       부트스트랩 (★ 인라인 선렌더 → Data URL → Sheet)
+    ========================== */
     async function copyToClipboard(text){
       try{ await navigator.clipboard.writeText(text); toast(); }
       catch(_){ UI.copyOut.value=text; UI.copyOut.select(); document.execCommand('copy'); toast(); }
@@ -463,34 +455,29 @@
     (async function boot(){
       showStatus('초기화…');
 
-      // (A) 활성 카테고리만 보이도록 뼈대 구성
-      rebuildFromALL();  // ALL이 비어도 섹션/칩 생성됨(스켈레톤)
-
-      // (B) 인라인: 스마일 32개 즉시 반영
+      // ① 인라인(스마일 32개) 먼저 파싱 → 즉시 렌더
       try{
         const inline = JSON.parse(document.getElementById('INLINE_SMILEYS').textContent||'[]');
         const norm = normalizeGeneric(inline);
-        if(norm.length){
-          ALL = ALL.concat(norm);
-          rebuildFromALL();
-        }
-      }catch(_){}
+        ALL = norm;                      // ★ 인라인을 우선 데이터로 사용
+        rebuildFromALL();                // → 스마일 32개 즉시 보임
+      }catch(_){ /* 인라인이 비어도 계속 진행 */ }
 
-      // (C) 정적 스냅샷(/data/build.json) 시도
-      const fromData = await loadFromDataURL();
-      if(fromData && fromData.length){
-        ALL = fromData; saveCache(ALL); rebuildFromALL();
+      // ② 정적 스냅샷(/data/build.json) 시도 (있으면 즉시 대체)
+      let merged = await loadFromDataURL();
+
+      // ③ 정적이 없으면 Google Sheet(gviz) 시도
+      if(!merged || !merged.length){
+        merged = await loadFromSheet();
+      }
+
+      // ④ 성공 시 최신 데이터로 교체, 실패 시 로컬 캐시 사용
+      if(merged && merged.length){
+        ALL = merged; saveCache(ALL); rebuildFromALL();
       }else{
-        // (D) Google Sheet(gviz) 시도
-        const fromSheet = await loadFromSheet();
-        if(fromSheet && fromSheet.length){
-          ALL = fromSheet; saveCache(ALL); rebuildFromALL();
-        }else{
-          // (E) 캐시라도 있으면 사용
-          const cached = loadCache();
-          if(cached && cached.length){ ALL = cached; rebuildFromALL(); }
-          else { showStatus('외부 데이터 없음 — 스마일 32개만 표시 중'); setTimeout(hideStatus, 1200); }
-        }
+        const cached = loadCache();
+        if(cached && cached.length){ ALL = cached; rebuildFromALL(); }
+        else { showStatus('외부 데이터 없음 — 스마일 32개만 표시 중'); setTimeout(hideStatus, 1200); }
       }
     })();
   </script>
