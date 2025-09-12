@@ -66,8 +66,67 @@
     footer{margin-top:28px;color:#777;font-size:12px;text-align:center;line-height:1.6}
     footer a{color:#777;text-decoration:underline}
   </style>
+
+  <!-- [ADD] 카테고리 표 스타일 -->
+<style>
+  :root{
+    --cat-table-maxw: 1100px;
+    --cat-cell-h: 48px;
+    --cat-font: 15px;
+    --cat-cols-desktop: 5;
+    --cat-cols-mobile: 3;
+  }
+  #catTableWrap{
+    position: sticky; top: 0; z-index: 5;
+    background: #fff; border-bottom: 1px solid #eee;
+    backdrop-filter: blur(4px);
+  }
+  #catTableWrap .inner{
+    max-width: var(--cat-table-maxw); margin: 0 auto; padding: 8px 12px;
+  }
+  table.cat-table{
+    width: 100%; table-layout: fixed; border-collapse: collapse;
+    font-size: var(--cat-font);
+  }
+  table.cat-table td{
+    padding: 0; border: 1px solid #f1f1f1;
+  }
+  .cat-btn{
+    width: 100%; height: var(--cat-cell-h); display: grid;
+    grid-template-columns: 28px 1fr; align-items: center; gap: 8px;
+    padding: 8px 10px; border: 0; background: #fff; cursor: pointer;
+  }
+  .cat-btn:hover{ background: #fafafa; }
+  .cat-btn.active{ outline: 2px solid rgba(0,0,0,0.08); background: #f9f9ff; }
+  .cat-emoji{
+    width: 24px; height: 24px; display: inline-flex; align-items:center; justify-content:center;
+    font-size: 20px; line-height: 1;
+  }
+  .cat-label{
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    text-align: left;
+  }
+  /* 반응형: 실제 열 수는 JS로 생성하지만, 모바일에서 글자 조금 키움 */
+  @media (max-width: 720px){
+    :root{ --cat-font: 14px; }
+  }
+</style>
+
+<!-- [ADD] Twemoji (PNG 강제 렌더) -->
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+
+  
 </head>
 <body>
+  <!-- [ADD] 상단 카테고리 표 -->
+<section id="catTableWrap">
+  <div class="inner">
+    <table class="cat-table" id="catTable">
+      <tbody id="catTbody"></tbody>
+    </table>
+  </div>
+</section>
+
   <div class="toolbar"><div class="searchwrap"><input id="q" class="search" placeholder=""></div></div>
   <div class="copywrap"><div id="copybar" class="copybar"><span id="copyhint" class="copyhint"></span></div></div>
 
@@ -83,6 +142,286 @@
 
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
+
+    <script type="module">
+/* --------------------------
+   0) 유틸
+---------------------------*/
+const koLabelMap = {
+  "Smileys & Emotion": "스마일/감정",
+  "People & Body": "피플/바디",
+  "Animals & Nature": "동물/자연",
+  "Food & Drink": "음식/음료",
+  "Travel & Places": "여행/장소",
+  "Activities": "활동",
+  "Objects": "사물",
+  "Symbols": "기호",
+  "Flags": "국기"
+};
+const pickLabel = (raw) => koLabelMap[raw] || raw || "기타";
+
+const codeToEmoji = (code) => {
+  // "1F600" 또는 "1F1FA-1F1F8" 같은 코드포인트를 실제 문자로
+  try{
+    return String.fromCodePoint(...code.split('-').map(h => parseInt(h,16)));
+  }catch(_){ return "❓"; }
+};
+
+const ensureTwemoji = (container) => {
+  if (!window.twemoji) return;
+  window.twemoji.parse(container, {
+    base: "https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/",
+    folder: "72x72",
+    ext: ".png" // PNG 강제 (SVG OFF)
+  });
+};
+
+// 안전한 fetch
+async function getJSON(url){
+  const res = await fetch(url, {cache: "no-cache"});
+  if(!res.ok) throw new Error(`fetch fail: ${url}`);
+  return res.json();
+}
+
+/* --------------------------
+   1) 데이터 로드
+   - build.json에서 대카테고리/이모지 목록을 추출
+---------------------------*/
+let BUILD = null;
+let SPRITE_MAP = null;      // 있으면 사용 (스프라이트 우선)
+let SUPPORT_HINTS = null;   // 404 회피용 (있으면 사용)
+
+async function loadData(){
+  if(!BUILD) BUILD = await getJSON("/data/build.json");
+  try { SPRITE_MAP = await getJSON("/sprites/SPRITE_MAP.json"); } catch(_){}
+  try { SUPPORT_HINTS = await getJSON("/sprites/SUPPORT_HINTS.json"); } catch(_){}
+}
+
+/* --------------------------
+   2) 카테고리 목록 생성
+   - build.json 구조: item.group or item.category 등 여러 변형을 호환
+---------------------------*/
+function extractCategory(item){
+  return item.group || item.category || item.major || item.cat || "기타";
+}
+function extractEmojiChar(item){
+  // item.emoji(문자) 또는 item.code(코드포인트) 우선
+  if (item.emoji) return item.emoji;
+  if (item.code) return codeToEmoji(item.code);
+  // 그래도 없으면 name에서 유추하지 않고 물음표
+  return "❓";
+}
+function groupByCategory(items){
+  const map = new Map();
+  for(const it of items){
+    const cat = extractCategory(it);
+    if(!map.has(cat)) map.set(cat, []);
+    map.get(cat).push(it);
+  }
+  return map;
+}
+
+/* --------------------------
+   3) 상단 카테고리 표 생성
+---------------------------*/
+function buildCategoryTable(catMap){
+  const tbody = document.getElementById("catTbody");
+  tbody.innerHTML = "";
+
+  const cats = Array.from(catMap.keys());
+  // 보기 순서: 자주 쓰는 순서로 정렬(있으면 우선)
+  const order = [
+    "Smileys & Emotion","People & Body","Animals & Nature",
+    "Food & Drink","Travel & Places","Activities","Objects","Symbols","Flags"
+  ];
+  cats.sort((a,b) => (order.indexOf(a)===-1?999:order.indexOf(a)) - (order.indexOf(b)===-1?999:order.indexOf(b)));
+
+  // 반응형: 데스크톱 5열, 모바일 3열
+  const columns = (window.innerWidth <= 720) ? 3 : 5;
+
+  for(let i=0;i<cats.length;i+=columns){
+    const tr = document.createElement("tr");
+    const slice = cats.slice(i, i+columns);
+    for(const cat of slice){
+      const td = document.createElement("td");
+      const btn = document.createElement("button");
+      btn.className = "cat-btn";
+      btn.setAttribute("data-cat", cat);
+
+      // 대표 이모지: 해당 카테고리 첫 아이템 문자 사용
+      const sample = catMap.get(cat)[0];
+      const em = document.createElement("span");
+      em.className = "cat-emoji";
+      em.textContent = extractEmojiChar(sample);
+
+      const label = document.createElement("span");
+      label.className = "cat-label";
+      label.textContent = pickLabel(cat);
+
+      btn.appendChild(em);
+      btn.appendChild(label);
+      td.appendChild(btn);
+      tr.appendChild(td);
+    }
+    // 빈 칸 채우기(마지막 행 정렬)
+    if(slice.length < columns){
+      for(let k=0;k<columns-slice.length;k++){
+        const td = document.createElement("td");
+        tr.appendChild(td);
+      }
+    }
+    tbody.appendChild(tr);
+  }
+
+  // Twemoji로 상단 바 컬러 강제
+  ensureTwemoji(tbody);
+
+  // 클릭 이벤트 → 카테고리 렌더
+  tbody.addEventListener("click", (e)=>{
+    const btn = e.target.closest(".cat-btn");
+    if(!btn) return;
+    const cat = btn.getAttribute("data-cat");
+    setActiveCategory(cat);
+  });
+}
+
+/* --------------------------
+   4) 렌더러(두 경로)
+   A) 기존에 window.renderTiles(list) 가 있으면 그대로 사용
+   B) 없으면 안전한 "단순 PNG/Twemoji" 렌더러 사용
+---------------------------*/
+// A) 스프라이트 지원 여부 헬퍼(맵 구조 유연 대응)
+function hasSpriteFor(item){
+  if(!SPRITE_MAP) return false;
+  const code = item.code || item.hex || item.u || "";
+  const key = code.toUpperCase();
+  return !!(SPRITE_MAP[key] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[key]));
+}
+
+// B) 단순 렌더러(fallback)
+function simpleRenderTiles(list){
+  let grid = document.getElementById("grid");
+  if(!grid){
+    grid = document.createElement("section");
+    grid.id = "grid";
+    document.body.appendChild(grid);
+  }
+  grid.innerHTML = ""; // 카테고리 변경 시 리셋
+
+  // 초기 페인트 최소화: 상위 120개만 먼저 그리기 → 스크롤 시 추가(온디맨드)
+  const CHUNK = 120;
+  let idx = 0;
+
+  const makeTile = (item) => {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.style.width = "72px"; tile.style.height="72px"; tile.style.display="inline-flex"; tile.style.alignItems="center"; tile.style.justifyContent="center";
+
+    if (hasSpriteFor(item)) {
+      // 스프라이트가 있으면 배경으로 렌더(시트/좌표 키 이름 유연처리)
+      const code = (item.code || item.hex || "").toUpperCase();
+      const rec = SPRITE_MAP[code] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[code]);
+      if(rec){
+        const sheet = rec.sheet || rec.s || rec.sprite;
+        const bx = -(rec.x || rec.left || 0);
+        const by = -(rec.y || rec.top  || 0);
+        const bw = rec.w || rec.width  || 72;
+        const bh = rec.h || rec.height || 72;
+        tile.style.backgroundImage = `url(/sprites/${sheet})`;
+        tile.style.backgroundPosition = `${bx}px ${by}px`;
+        tile.style.backgroundRepeat = "no-repeat";
+        tile.style.width  = bw+"px";
+        tile.style.height = bh+"px";
+        tile.title = item.name || item.label || code;
+        return tile;
+      }
+    }
+
+    // PNG 우선(사이트 정책): build.json에 pngUrl 비슷한 필드가 있으면 사용
+    const pngUrl = item.png || item.pngUrl || item.url || null;
+    if (pngUrl && !(SUPPORT_HINTS && SUPPORT_HINTS.block && SUPPORT_HINTS.block.includes(item.code))) {
+      const img = document.createElement("img");
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.width = 72; img.height = 72;
+      img.src = pngUrl;
+      img.alt = item.name || item.code || "";
+      tile.appendChild(img);
+      return tile;
+    }
+
+    // 최후: Twemoji로 컬러 강제 (tofu 방지)
+    const span = document.createElement("span");
+    span.textContent = extractEmojiChar(item);
+    span.style.fontSize = "40px";
+    tile.appendChild(span);
+    // 이 타일 안쪽만 파싱(성능 절약)
+    ensureTwemoji(tile);
+    return tile;
+  };
+
+  // 초깃값 + 인터섹션 관찰로 온디맨드
+  const renderChunk = ()=>{
+    const part = list.slice(idx, idx+CHUNK);
+    for(const it of part){
+      grid.appendChild(makeTile(it));
+    }
+    idx += CHUNK;
+  };
+  renderChunk();
+
+  const io = new IntersectionObserver((entries)=>{
+    const last = entries.find(e=>e.isIntersecting);
+    if(!last) return;
+    if(idx < list.length) renderChunk();
+    else io.disconnect();
+  }, {rootMargin: "800px"});
+  io.observe(grid.lastElementChild);
+}
+
+// 실제 엔트리포인트: 외부에 window.renderTiles 있으면 우선 사용
+function renderTilesByCategory(list){
+  if (typeof window.renderTiles === "function") {
+    window.renderTiles(list);           // 프로젝트 고유 렌더러 사용
+  } else {
+    simpleRenderTiles(list);            // 안전한 대체 렌더러
+  }
+}
+
+/* --------------------------
+   5) 카테고리 전환
+---------------------------*/
+let CAT_MAP = null;
+let ACTIVE_CAT = null;
+
+function setActiveCategory(cat){
+  ACTIVE_CAT = cat;
+  // UI 상태
+  document.querySelectorAll(".cat-btn").forEach(b=>{
+    b.classList.toggle("active", b.getAttribute("data-cat")===cat);
+  });
+  // 데이터 필터링 후 그리드 렌더
+  const list = CAT_MAP.get(cat) || [];
+  renderTilesByCategory(list);
+}
+
+/* --------------------------
+   6) 부트스트랩
+---------------------------*/
+(async function boot(){
+  await loadData();
+  // build.json → items 배열 탐색 (빌드 구조 호환)
+  const items = BUILD.items || BUILD.emojis || BUILD.data || BUILD || [];
+  CAT_MAP = groupByCategory(items);
+
+  buildCategoryTable(CAT_MAP);
+
+  // 첫 카테고리 자동 선택(스마일/감정 우선, 없으면 첫 항목)
+  const pref = ["Smileys & Emotion","스마일/감정"];
+  const firstCat = [...CAT_MAP.keys()].find(k => pref.includes(k)) || [...CAT_MAP.keys()][0];
+  setActiveCategory(firstCat);
+})();
+
   /* ===== 0) 설정 ===== */
   // CSV 폴백용 (스냅샷 없을 때만 사용)
   const DATA_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1543598799&single=true&output=csv";
