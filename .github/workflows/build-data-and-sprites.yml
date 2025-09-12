@@ -1,12 +1,10 @@
 name: Build Data & Sprites
-
 on:
-  workflow_dispatch:        # 수동 실행 버튼
+  workflow_dispatch:
   schedule:
-    - cron: "0 */6 * * *"   # 6시간마다 자동 실행
-
+    - cron: "0 */6 * * *"  # 6시간마다
 permissions:
-  contents: write           # 🔑 Actions가 커밋/푸시하려면 필요
+  contents: write
 
 jobs:
   build:
@@ -14,33 +12,36 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 20
 
       - name: Install deps
         run: |
-          npm init -y
-          npm i node-fetch@3 papaparse sharp
+          npm ci || npm i
 
-      - name: Build snapshot (CSV -> /data/build.json)
+      # ▶︎ 시트 → JSON 스냅샷 (필요한 명령으로 바꾸세요)
+      - name: Build JSON snapshot
         run: |
-          node scripts/csv-to-json.mjs \
-            --data="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1543598799&single=true&output=csv" \
-            --out=./data/build.json
+          node scripts/csv-to-json.mjs --out data/build.json
 
-      - name: Build sprites + support hints (Top500, PNG only)
+      # ▶︎ 스프라이트 시트 생성 (TopN은 원하시는 값)
+      - name: Build sprites
         run: |
-          node scripts/build-sprites.mjs \
-            --data="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RAfp9VnhQCpOkq9fBnu3b44r6jTB9EyT4qefGNSOf7R0SKuvEt_OvFs_qHLFQA9a3VRade4mxsjA/pub?gid=1543598799&single=true&output=csv" \
-            --n=500 --tile=72 --cols=40 --rows=13 --out=./sprites
+          node scripts/build-sprites.mjs --n=1000 --out sprites/
 
-      - name: Commit generated artifacts
+      - name: Commit & Push
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add data sprites
-          git commit -m "chore: update snapshot & sprites (Top500)" || echo "No changes"
-          git push
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ sprites/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update build.json & sprites"
+            git push
+          else
+            echo "No changes."
+          fi
