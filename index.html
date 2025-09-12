@@ -3,86 +3,87 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>프로 이모지 검색 — 카테고리 전부 보기 (스프레드시트 연동)</title>
+  <title>프로 이모지 검색 — 하이브리드(36개 즉시+더보기)</title>
 
-  <!-- 성능: 네트워크 초반 영점 조준 -->
+  <!-- 성능: 필요한 출처 선연결 -->
   <link rel="preconnect" href="https://docs.google.com" crossorigin>
-  <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
   <link rel="dns-prefetch" href="//docs.google.com">
-  <link rel="dns-prefetch" href="//lh3.googleusercontent.com">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
   <style>
     :root{
       --maxw: 1100px;
-      --grid-width: 980px;     /* 카테고리 섹션 최대 폭 */
-      --tile: 72px;            /* 타일 크기 */
-      --gap: 8px;              /* 타일 간격 */
-      --chip-h: 36px;          /* 상단 카테고리 칩 높이 */
+      --grid-width: 980px;
+      --tile: 72px;
+      --gap: 8px;
+      --chip-h: 36px;
       --brand: #111;
       --border: #eee;
     }
     *{ box-sizing: border-box }
-    html, body{ margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Apple Color Emoji,Noto Color Emoji,sans-serif; }
+    html, body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Apple Color Emoji,Noto Color Emoji,sans-serif }
 
-    /* 상단 툴바 */
-    #toolbar{ position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid var(--border); }
-    #toolbar .in{ max-width: var(--maxw); margin: 0 auto; padding: 10px 12px; display: grid; gap: 8px; grid-template-columns: 1fr auto; align-items: center; }
-    #search{ height: 40px; border: 1px solid #ddd; border-radius: 10px; padding: 0 12px; font-size: 15px; }
-    #copyBox{ display: flex; gap: 8px; align-items: center; }
-    #copyOut{ width: 180px; height: 40px; border: 1px solid #ddd; border-radius: 10px; padding: 0 12px; font-size: 15px; }
-    #btnCopy{ height: 40px; padding: 0 14px; border: 1px solid var(--brand); background: var(--brand); color:#fff; border-radius: 10px; cursor: pointer; }
+    /* 상단 */
+    #toolbar{ position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid var(--border) }
+    #toolbar .in{ max-width:var(--maxw); margin:0 auto; padding:10px 12px; display:grid; gap:8px; grid-template-columns:1fr auto; align-items:center }
+    #search{ height:40px; border:1px solid #ddd; border-radius:10px; padding:0 12px; font-size:15px }
+    #copyBox{ display:flex; gap:8px; align-items:center }
+    #copyOut{ width:180px; height:40px; border:1px solid #ddd; border-radius:10px; padding:0 12px; font-size:15px }
+    #btnCopy{ height:40px; padding:0 14px; border:1px solid var(--brand); background:var(--brand); color:#fff; border-radius:10px; cursor:pointer }
 
     /* 카테고리 칩 */
-    #chipsWrap{ background:#fff; border-bottom:1px solid var(--border); }
-    #chips{ max-width: var(--maxw); margin: 0 auto; padding: 8px 12px; display: grid; grid-auto-flow: column; grid-auto-columns: max-content; gap: 8px; overflow-x: auto; }
-    .chip{ height: var(--chip-h); padding:0 12px; display: inline-grid; grid-auto-flow: column; gap: 8px; align-items: center; border: 1px solid #ddd; border-radius: 999px; background:#fff; cursor:pointer; white-space:nowrap; }
-    .chip .emo{ font-size: 18px; line-height: 1; }
-    .chip.active{ background:#f5f6ff; border-color:#d7dcff; }
+    #chipsWrap{ background:#fff; border-bottom:1px solid var(--border) }
+    #chips{ max-width:var(--maxw); margin:0 auto; padding:8px 12px; display:grid; grid-auto-flow:column; grid-auto-columns:max-content; gap:8px; overflow-x:auto }
+    .chip{ height:var(--chip-h); padding:0 12px; display:inline-grid; grid-auto-flow:column; gap:8px; align-items:center; border:1px solid #ddd; border-radius:999px; background:#fff; cursor:pointer; white-space:nowrap }
+    .chip .emo{ font-size:18px; line-height:1 }
+    .chip.active{ background:#f5f6ff; border-color:#d7dcff }
 
-    /* 상태/알림 */
-    #status{ max-width: var(--maxw); margin: 10px auto 0; padding: 6px 12px; color:#555; text-align:center; display:none; }
-    #toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:20; background:rgba(0,0,0,.85); color:#fff; padding:8px 12px; border-radius:20px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .18s; }
-    #toast.show{ opacity:1; }
+    /* 상태/토스트 */
+    #status{ max-width:var(--maxw); margin:10px auto 0; padding:6px 12px; color:#555; text-align:center; display:none }
+    #toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:20; background:rgba(0,0,0,.85); color:#fff; padding:8px 12px; border-radius:20px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .18s }
+    #toast.show{ opacity:1 }
 
     /* 검색 결과 */
-    #resultWrap{ max-width: var(--grid-width); margin: 14px auto 0; padding: 0 8px; display:none; }
-    #resultHead{ display:flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-    #resultGrid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile), 1fr)); gap: var(--gap); }
+    #resultWrap{ max-width:var(--grid-width); margin:14px auto 0; padding:0 8px; display:none }
+    #resultHead{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px }
+    #resultGrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--tile),1fr)); gap:var(--gap) }
 
-    /* 카테고리 섹션 (content-visibility로 초기 부담 최소화) */
-    .cat-section{ max-width: var(--grid-width); margin: 18px auto 44px; padding: 0 8px; content-visibility: auto; contain-intrinsic-size: 1px 1200px; }
-    .cat-head{ display:flex; gap:10px; align-items:center; margin-bottom: 8px; }
-    .cat-emo{ font-size:22px; }
-    .cat-title{ font-size:18px; font-weight:600; }
-    .cat-count{ font-size:13px; color:#666; margin-left:auto; }
-    .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile), 1fr)); gap: var(--gap); }
+    /* 카테고리 섹션 */
+    .cat-section{ max-width:var(--grid-width); margin:18px auto 44px; padding:0 8px; content-visibility:auto; contain-intrinsic-size:1px 1200px }
+    .cat-head{ display:flex; gap:10px; align-items:center; margin-bottom:8px }
+    .cat-emo{ font-size:22px }
+    .cat-title{ font-size:18px; font-weight:600 }
+    .cat-count{ font-size:13px; color:#666; margin-left:auto }
+    .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--tile),1fr)); gap:var(--gap) }
     .tile{ width:var(--tile); height:var(--tile); display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:10px; background:#fff; user-select:none; cursor:pointer; transition:transform .04s }
-    .tile:hover{ transform: translateY(-1px); background:#fafafa; }
-    .tile img{ width:var(--tile); height:var(--tile); image-rendering:-webkit-optimize-contrast; }
+    .tile:hover{ transform:translateY(-1px); background:#fafafa }
 
-    .more{ margin-top: 10px; text-align:center; }
-    .btn-more{ width:100%; height:42px; border:1px solid #ddd; background:#fff; border-radius:10px; cursor:pointer; }
-    .btn-more[disabled]{ opacity:.6; cursor:default; }
+    /* 스켈레톤 */
+    .skeleton{ background:linear-gradient(90deg,#f3f3f3 25%,#eaeaea 37%,#f3f3f3 63%); background-size:400% 100%; animation:shimmer 1.2s infinite; border:1px solid #eee; border-radius:10px }
+    @keyframes shimmer{ 0%{background-position:100% 0} 100%{background-position:-100% 0} }
 
-    /* 법적 표기 */
-    #legal{ max-width:var(--maxw); margin: 28px auto 40px; padding: 0 12px; font-size:12px; color:#777; }
-    #legal a{ color: inherit; text-decoration: underline; }
+    .more{ margin-top:10px; text-align:center }
+    .btn-more{ width:100%; height:42px; border:1px solid #ddd; background:#fff; border-radius:10px; cursor:pointer }
+    .btn-more[disabled]{ opacity:.6; cursor:default }
 
-    @media (max-width: 768px){
-      :root{ --grid-width: 560px; }
-      #chips{ grid-auto-columns: max-content; }
+    /* 푸터 */
+    #legal{ max-width:var(--maxw); margin:28px auto 40px; padding:0 12px; font-size:12px; color:#777 }
+    #legal a{ color:inherit; text-decoration:underline }
+
+    @media (max-width:768px){
+      :root{ --grid-width:560px }
+      #chips{ grid-auto-columns:max-content }
     }
   </style>
 
-  <!-- Twemoji: 컬러 PNG (SVG OFF). 파싱은 섹션 가시화 시점에만 수행. -->
+  <!-- Twemoji PNG 파서 (SVG OFF) -->
   <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <!-- 1) 상단 -->
   <header id="toolbar">
     <div class="in">
-      <input id="search" type="search" placeholder="이모지 이름(name_*) / 키워드 검색 (한 글자도 매칭)"/>
+      <input id="search" type="search" placeholder="이모지 이름(name_*) / 부분 일치 검색 (한 글자도 매칭)"/>
       <div id="copyBox">
         <input id="copyOut" type="text" readonly placeholder="복사할 이모지"/>
         <button id="btnCopy" type="button">복사</button>
@@ -103,7 +104,7 @@
     <div id="resultGrid"></div>
   </section>
 
-  <!-- 5) 카테고리 섹션들이 여기에 만들어짐 -->
+  <!-- 5) 카테고리 섹션 컨테이너 -->
   <div id="sections"></div>
 
   <!-- 6) 법적 표기 -->
@@ -112,38 +113,75 @@
     licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Unicode data © The Unicode Consortium.
   </footer>
 
+  <!-- 🔹 인라인 즉시 데이터: People & Body 36개 (즉시 페인트 보장) -->
+  <script type="application/json" id="INLINE_PEOPLE">[
+    {"group":"People & Body","name_en":"person","name_ko":"사람","emoji":"🧑"},
+    {"group":"People & Body","name_en":"man","name_ko":"남자","emoji":"👨"},
+    {"group":"People & Body","name_en":"woman","name_ko":"여자","emoji":"👩"},
+    {"group":"People & Body","name_en":"boy","name_ko":"소년","emoji":"👦"},
+    {"group":"People & Body","name_en":"girl","name_ko":"소녀","emoji":"👧"},
+    {"group":"People & Body","name_en":"baby","name_ko":"아기","emoji":"👶"},
+    {"group":"People & Body","name_en":"old man","name_ko":"노인(남)","emoji":"👴"},
+    {"group":"People & Body","name_en":"old woman","name_ko":"노인(여)","emoji":"👵"},
+    {"group":"People & Body","name_en":"waving hand","name_ko":"손 흔들기","emoji":"👋"},
+    {"group":"People & Body","name_en":"thumbs up","name_ko":"따봉","emoji":"👍"},
+    {"group":"People & Body","name_en":"thumbs down","name_ko":"따봉 반대","emoji":"👎"},
+    {"group":"People & Body","name_en":"clapping hands","name_ko":"박수","emoji":"👏"},
+    {"group":"People & Body","name_en":"raising hands","name_ko":"만세","emoji":"🙌"},
+    {"group":"People & Body","name_en":"folded hands","name_ko":"합장","emoji":"🙏"},
+    {"group":"People & Body","name_en":"handshake","name_ko":"악수","emoji":"🤝"},
+    {"group":"People & Body","name_en":"victory hand","name_ko":"브이","emoji":"✌️"},
+    {"group":"People & Body","name_en":"crossed fingers","name_ko":"행운","emoji":"🤞"},
+    {"group":"People & Body","name_en":"OK hand","name_ko":"오케이","emoji":"👌"},
+    {"group":"People & Body","name_en":"call me hand","name_ko":"전화해","emoji":"🤙"},
+    {"group":"People & Body","name_en":"backhand index left","name_ko":"왼쪽 가리킴","emoji":"👈"},
+    {"group":"People & Body","name_en":"backhand index right","name_ko":"오른쪽 가리킴","emoji":"👉"},
+    {"group":"People & Body","name_en":"backhand index up","name_ko":"위 가리킴","emoji":"👆"},
+    {"group":"People & Body","name_en":"backhand index down","name_ko":"아래 가리킴","emoji":"👇"},
+    {"group":"People & Body","name_en":"raised hand","name_ko":"손바닥","emoji":"✋"},
+    {"group":"People & Body","name_en":"raised back of hand","name_ko":"손등","emoji":"🤚"},
+    {"group":"People & Body","name_en":"vulcan salute","name_ko":"벌컨 경례","emoji":"🖖"},
+    {"group":"People & Body","name_en":"sign of the horns","name_ko":"락","emoji":"🤘"},
+    {"group":"People & Body","name_en":"love-you gesture","name_ko":"사랑 제스처","emoji":"🤟"},
+    {"group":"People & Body","name_en":"flexed biceps","name_ko":"힘자랑","emoji":"💪"},
+    {"group":"People & Body","name_en":"person walking","name_ko":"걷는 사람","emoji":"🚶"},
+    {"group":"People & Body","name_en":"person running","name_ko":"달리기","emoji":"🏃"},
+    {"group":"People & Body","name_en":"person biking","name_ko":"자전거","emoji":"🚴"},
+    {"group":"People & Body","name_en":"person swimming","name_ko":"수영","emoji":"🏊"},
+    {"group":"People & Body","name_en":"person raising hand","name_ko":"손 든 사람","emoji":"🙋"},
+    {"group":"People & Body","name_en":"person gesturing OK","name_ko":"오케이 제스처","emoji":"🙆"},
+    {"group":"People & Body","name_en":"person gesturing NO","name_ko":"노 제스처","emoji":"🙅"},
+    {"group":"People & Body","name_en":"person bowing","name_ko":"인사","emoji":"🙇"}
+  ]</script>
+
   <script type="module">
->
     /* =========================================================
-       스프레드시트 연결: 문서ID + gid (두목님 URL 반영)
-       - 반드시 "웹에 게시(Publish to the web)" 상태여야 함
+       설정
     ========================================================= */
+    const DATA_URL = (location.pathname.replace(/[^/]+$/, '') || '/') + 'data/build.json'; // 같은 레포의 정적 스냅샷(있으면 최우선)
     const GSHEET = {
-      id:  '1-W_w24LxJGwqpsSW1B8pqCQGMWF_TV-Ip5L5XqDG68Q',
-      gid: '1543598799',           // sheetName 대신 gid 사용(안정)
+      id : '1-W_w24LxJGwqpsSW1B8pqCQGMWF_TV-Ip5L5XqDG68Q',
+      gid: '1543598799',
       query: 'select *'
     };
+    const INITIAL_PER_CAT = 36;      // 각 섹션 첫 노출
+    const MORE_CHUNK      = 240;     // 더보기당 증가량
 
-    /* =========================================================
-       파라미터 / 라벨
-    ========================================================= */
-    const INITIAL_PER_CAT = 36;     // 각 카테고리 첫 노출 수
-    const MORE_CHUNK      = 240;    // 더보기 당 붙일 수
     const CAT_ORDER = [
       "Smileys & Emotion","People & Body","Animals & Nature","Food & Drink",
       "Travel & Places","Activities","Objects","Symbols","Flags"
     ];
-    const LOCALE = (navigator.language||'en').toLowerCase().split('-')[0]; // ko,en,ja,zh...
+    const LOCALE = (navigator.language||'en').toLowerCase().split('-')[0];
     const LABELS = {
-      en: { "Smileys & Emotion":"Smileys & Emotion","People & Body":"People & Body","Animals & Nature":"Animals & Nature","Food & Drink":"Food & Drink","Travel & Places":"Travel & Places","Activities":"Activities","Objects":"Objects","Symbols":"Symbols","Flags":"Flags" },
-      ko: { "Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연","Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동","Objects":"사물","Symbols":"기호","Flags":"국기" },
-      ja: { "Smileys & Emotion":"スマイル/感情","People & Body":"人/体","Animals & Nature":"動物/自然","Food & Drink":"食べ物/飲み物","Travel & Places":"旅行/場所","Activities":"活動","Objects":"物","Symbols":"記号","Flags":"旗" },
-      zh: { "Smileys & Emotion":"表情/情感","People & Body":"人物/身体","Animals & Nature":"动物/自然","Food & Drink":"食物/饮料","Travel & Places":"旅行/地点","Activities":"活动","Objects":"物品","Symbols":"符号","Flags":"旗帜" }
+      en: {"Smileys & Emotion":"Smileys & Emotion","People & Body":"People & Body","Animals & Nature":"Animals & Nature","Food & Drink":"Food & Drink","Travel & Places":"Travel & Places","Activities":"Activities","Objects":"Objects","Symbols":"Symbols","Flags":"Flags"},
+      ko: {"Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연","Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동","Objects":"사물","Symbols":"기호","Flags":"국기"},
+      ja: {"Smileys & Emotion":"スマイル/感情","People & Body":"人/体","Animals & Nature":"動物/自然","Food & Drink":"食べ物/飲み物","Travel & Places":"旅行/場所","Activities":"活動","Objects":"物","Symbols":"記号","Flags":"旗"},
+      zh: {"Smileys & Emotion":"表情/情感","People & Body":"人物/身体","Animals & Nature":"动物/自然","Food & Drink":"食物/饮料","Travel & Places":"旅行/地点","Activities":"活动","Objects":"物品","Symbols":"符号","Flags":"旗帜"}
     };
     const L10N = LABELS[LOCALE] || LABELS.en;
 
     /* =========================================================
-       DOM 참조
+       DOM
     ========================================================= */
     const UI = {
       search:   document.getElementById('search'),
@@ -156,343 +194,307 @@
       resultWrap:  document.getElementById('resultWrap'),
       resultTitle: document.getElementById('resultTitle'),
       resultCount: document.getElementById('resultCount'),
-      resultGrid:  document.getElementById('resul
-
-    /* =========================================================
-       동작 파라미터
-    ========================================================= */
-    const INITIAL_PER_CAT = 36;             // 각 카테고리 첫 화면 표시 수
-    const MORE_CHUNK = 240;                 // 더보기 시 한 번에 붙일 양
-    const CAT_ORDER = [
-      "Smileys & Emotion","People & Body","Animals & Nature","Food & Drink",
-      "Travel & Places","Activities","Objects","Symbols","Flags"
-    ];
-    const LOCALE = (navigator.language||'en').toLowerCase().split('-')[0]; // 'ko','en','ja','zh','es' 등
-    const LABELS = {
-      "en": {
-        "Smileys & Emotion":"Smileys & Emotion","People & Body":"People & Body","Animals & Nature":"Animals & Nature",
-        "Food & Drink":"Food & Drink","Travel & Places":"Travel & Places","Activities":"Activities",
-        "Objects":"Objects","Symbols":"Symbols","Flags":"Flags"
-      },
-      "ko": {
-        "Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연",
-        "Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동",
-        "Objects":"사물","Symbols":"기호","Flags":"국기"
-      },
-      "ja": {
-        "Smileys & Emotion":"スマイル/感情","People & Body":"人/体","Animals & Nature":"動物/自然",
-        "Food & Drink":"食べ物/飲み物","Travel & Places":"旅行/場所","Activities":"活動",
-        "Objects":"物","Symbols":"記号","Flags":"旗"
-      },
-      "zh": {
-        "Smileys & Emotion":"表情/情感","People & Body":"人物/身体","Animals & Nature":"动物/自然",
-        "Food & Drink":"食物/饮料","Travel & Places":"旅行/地点","Activities":"活动",
-        "Objects":"物品","Symbols":"符号","Flags":"旗帜"
-      }
-    };
-    const L10N = LABELS[LOCALE] || LABELS.en;
-
-    /* =========================================================
-       DOM 참조
-    ========================================================= */
-    const UI = {
-      search:   document.getElementById('search'),
-      copyOut:  document.getElementById('copyOut'),
-      btnCopy:  document.getElementById('btnCopy'),
-      chips:    document.getElementById('chips'),
-      sections: document.getElementById('sections'),
-      status:   document.getElementById('status'),
-      toast:    document.getElementById('toast'),
-      resultWrap: document.getElementById('resultWrap'),
-      resultTitle: document.getElementById('resultTitle'),
-      resultCount: document.getElementById('resultCount'),
       resultGrid:  document.getElementById('resultGrid'),
     };
+    const showStatus=(m)=>{ UI.status.style.display='block'; UI.status.innerHTML=m; };
+    const hideStatus=()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
+    const toast=(t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
 
-    const showStatus = (m)=>{ UI.status.style.display='block'; UI.status.innerHTML=m; };
-    const hideStatus = ()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
-    const toast = (t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
-
-    const twParse = (el)=> window.twemoji?.parse(el, {
-      base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png"
-    });
+    const twParse = (el)=> window.twemoji?.parse(el,{ base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png" });
 
     /* =========================================================
        유틸
     ========================================================= */
-    const codeToEmoji = (code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
     const lower = (s)=> String(s||'').toLowerCase();
+    const codeToEmoji = (code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
     const pick = (obj, keys)=>{ for(const k of keys){ if(obj[k]!=null && obj[k]!=='') return obj[k]; const k2=Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2 && obj[k2]!=null && obj[k2]!=='') return obj[k2]; } return ''; };
+    const slug = (s)=> String(s||'').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
 
-    /* =========================================================
-       데이터 로딩 (Google Sheets gviz JSON)
-       - 웹에 게시(Publish to web) 상태여야 함
-    ========================================================= */
+    function fetchWithTimeout(url, ms=2500){
+      return Promise.race([
+        fetch(url,{cache:'no-cache'}),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))
+      ]);
+    }
     function gsheetUrl(){
-      if(!GSHEET.id) return '';
-      if(GSHEET.gid){
-        return `https://docs.google.com/spreadsheets/d/${GSHEET.id}/gviz/tq?tqx=out:json&gid=${encodeURIComponent(GSHEET.gid)}&tq=${encodeURIComponent(GSHEET.query||'select *')}`;
-      }
-      return `https://docs.google.com/spreadsheets/d/${GSHEET.id}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(GSHEET.sheetName||'Sheet1')}&tq=${encodeURIComponent(GSHEET.query||'select *')}`;
-    }
-    async function fetchSheet(){
-      const url = gsheetUrl();
-      if(!url){ return []; }
-      const r = await fetch(url, {cache:'no-cache'});
-      const text = await r.text();
-      // gviz 응답은 JS 래퍼로 감싸져 있음 → JSON만 추출
-      const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}')+1));
-      const cols = (json.table.cols||[]).map(c=>c.label||c.id||'');
-      const rows = (json.table.rows||[]).map(row=>{
-        const obj={};
-        (row.c||[]).forEach((cell,i)=>{ obj[cols[i]||('col'+i)] = cell ? (cell.f ?? cell.v ?? '') : ''; });
-        return obj;
-      });
-      return rows;
+      const tq = encodeURIComponent(GSHEET.query || 'select *');
+      return `https://docs.google.com/spreadsheets/d/${GSHEET.id}/gviz/tq?tqx=out:json&gid=${encodeURIComponent(GSHEET.gid)}&tq=${tq}`;
     }
 
     /* =========================================================
-       정규화
-       - 허용 컬럼 예시: group/category, emoji, code, name, name_ko, name_en, name_ja, name_zh, keywords
+       데이터 정규화
+       - 검색은 name_*만 사용 (keywords 완전 제거)
     ========================================================= */
-    function normalize(rows){
-      const out=[]; const seen=new Set();
-      for(const r of rows){
-        const group = pick(r, ['group','category','major','cat','section','type']);
-        if(!group) continue;  // 그룹 없는 행 스킵
+    function normalizeGeneric(root){
+      // root: array or object with items/emojis/rows...
+      const items = Array.isArray(root) ? root : (root.items||root.emojis||root.data||root.rows||[]);
+      const out=[], seen=new Set();
+      for(const r of items){
+        if(!r) continue;
+        const group = pick(r,['group','category','major','cat','section','type']);
+        if(!group) continue;
 
-        const emojiChar = pick(r, ['emoji','char']) || (pick(r,['code','unified','unicode','codepoint']) ? codeToEmoji(pick(r,['code','unified','unicode','codepoint'])) : '');
-        if(!emojiChar) continue;
+        const code  = String(pick(r,['code','unified','unicode','codepoint'])||'').toUpperCase();
+        const emoji = r.emoji || (code ? codeToEmoji(code) : '');
+        if(!emoji) continue;
 
-        const code = pick(r, ['code','unified','unicode','codepoint']).toUpperCase();
+        // name_*만 합침
         const name_local =
           (LOCALE==='ko' && pick(r,['name_ko','ko','name-korean'])) ||
           (LOCALE==='ja' && pick(r,['name_ja','ja'])) ||
           (LOCALE==='zh' && pick(r,['name_zh','zh'])) ||
           pick(r,['name','name_en','label','cldr','short_name','id']) || '';
 
-        const keywords = [ pick(r, ['keywords','tags','aliases','alias']) ].filter(Boolean).join(' ');
-        const hay = [
-          name_local,
-          pick(r,['name','name_en','name_ko','name_ja','name_zh']),
-          keywords,
-          code
-        ].join(' ').toLowerCase();
+        // name_* 전부를 합쳐 검색 문자열 구성
+        const names = Object.keys(r).filter(k=>/^name(_|-)/i.test(k) || k==='name')
+                       .map(k=>String(r[k]||''));
+        const hay = names.join(' ').toLowerCase();
 
-        const key = code || emojiChar;
-        if(seen.has(key)) continue; seen.add(key);
-
-        out.push({
-          group,
-          name: name_local || pick(r,['name','name_en']) || '',
-          nameAll: hay,
-          emoji: emojiChar,
-          code,
-        });
+        const key = code || emoji; if(seen.has(key)) continue; seen.add(key);
+        out.push({ group, name: name_local||pick(r,['name','name_en'])||'', nameAll: hay, emoji, code });
       }
       return out;
+    }
+
+    async function loadFromDataURL(){
+      try{
+        const res = await fetchWithTimeout(DATA_URL, 1500);
+        if(!res.ok) return null;
+        const j = await res.json();
+        return normalizeGeneric(j);
+      }catch(_){ return null; }
+    }
+    async function loadFromSheet(){
+      try{
+        const res = await fetchWithTimeout(gsheetUrl(), 3000);
+        const text = await res.text();
+        const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}')+1));
+        const cols = (json.table.cols||[]).map(c=>c.label||c.id||'');
+        const rows = (json.table.rows||[]).map(row=>{
+          const obj={}; (row.c||[]).forEach((cell,i)=>{ obj[cols[i]||('col'+i)] = cell ? (cell.f ?? cell.v ?? '') : ''; });
+          return obj;
+        });
+        return normalizeGeneric(rows);
+      }catch(_){ return null; }
     }
 
     /* =========================================================
        전역 상태
     ========================================================= */
-    let ALL=[], BY_CAT=new Map();   // 카테고리별 배열
-    let VIEW_BY_CAT=new Map();      // 현재 화면에 반영된 상태(검색/더보기 고려)
-    let CHIP_INDEX=new Map();       // 칩 → 섹션 스크롤 연결
+    let ALL=[], BY_CAT=new Map();      // 카테고리별 전체
+    let VIEW_BY_CAT=new Map();         // 화면 반영(36개 + 더보기)
+    const CACHE_KEY='emoji_db_v1';     // 로컬 캐시
+
+    function saveCache(arr){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(arr)); }catch(_){ } }
+    function loadCache(){ try{ const raw=localStorage.getItem(CACHE_KEY); if(!raw) return null; const arr=JSON.parse(raw); return Array.isArray(arr)?arr:null; }catch(_){ return null; } }
 
     /* =========================================================
        렌더: 칩/섹션/타일
     ========================================================= */
-    function buildChips(){
+    const DEFAULT_EMO = {
+      "Smileys & Emotion":"😀","People & Body":"🧑","Animals & Nature":"🐱","Food & Drink":"🍔",
+      "Travel & Places":"✈️","Activities":"⚽","Objects":"💡","Symbols":"♾","Flags":"🇰🇷"
+    };
+
+    function buildChips(cats){
       UI.chips.innerHTML='';
       const frag=document.createDocumentFragment();
-      const cats = [...BY_CAT.keys()].sort((a,b)=>(CAT_ORDER.indexOf(a)===-1?999:CAT_ORDER.indexOf(a))-(CAT_ORDER.indexOf(b)===-1?999:CAT_ORDER.indexOf(b)));
       for(const cat of cats){
         const btn=document.createElement('button'); btn.className='chip'; btn.dataset.cat=cat;
-        const emo=document.createElement('span'); emo.className='emo'; emo.textContent = BY_CAT.get(cat)[0]?.emoji || '😀';
+        const emo=document.createElement('span'); emo.className='emo'; emo.textContent = (BY_CAT.get(cat)?.[0]?.emoji) || DEFAULT_EMO[cat] || '😀';
         const lab=document.createElement('span'); lab.textContent = (L10N[cat] || cat);
-        btn.append(emo, lab);
+        btn.append(emo,lab);
         btn.onclick=()=>{ document.getElementById(`sec-${slug(cat)}`)?.scrollIntoView({behavior:'smooth', block:'start'}); };
         frag.appendChild(btn);
       }
       UI.chips.appendChild(frag);
-      // 첫 칩 활성화
-      const first = cats[0]; if(first){ UI.chips.querySelector(`[data-cat="${cssEsc(first)}"]`)?.classList.add('active'); }
+      UI.chips.querySelector('.chip')?.classList.add('active');
     }
 
-    function buildSections(){
+    function sectionSkeleton(grid){
+      grid.innerHTML='';
+      const frag=document.createDocumentFragment();
+      for(let i=0;i<INITIAL_PER_CAT;i++){
+        const d=document.createElement('div'); d.className='tile skeleton';
+        frag.appendChild(d);
+      }
+      grid.appendChild(frag);
+    }
+
+    function makeTile(it){
+      const t=document.createElement('div'); t.className='tile'; t.title = it.name || it.code || ''; t.dataset.emoji=it.emoji;
+      const span=document.createElement('span'); span.textContent=it.emoji; span.style.fontSize='40px';
+      t.appendChild(span);
+      t.onclick=()=>{ UI.copyOut.value=it.emoji; copyToClipboard(it.emoji); };
+      return t;
+    }
+
+    function buildSections(cats){
       UI.sections.innerHTML='';
-      const cats = [...BY_CAT.keys()].sort((a,b)=>(CAT_ORDER.indexOf(a)===-1?999:CAT_ORDER.indexOf(a))-(CAT_ORDER.indexOf(b)===-1?999:CAT_ORDER.indexOf(b)));
       const frag=document.createDocumentFragment();
       for(const cat of cats){
         const sec=document.createElement('section'); sec.className='cat-section'; sec.id=`sec-${slug(cat)}`; sec.dataset.cat=cat;
 
         const head=document.createElement('div'); head.className='cat-head';
-        const emo=document.createElement('span'); emo.className='cat-emo'; emo.textContent=BY_CAT.get(cat)[0]?.emoji || '😀';
+        const emo=document.createElement('span'); emo.className='cat-emo'; emo.textContent=(BY_CAT.get(cat)?.[0]?.emoji)||DEFAULT_EMO[cat]||'😀';
         const title=document.createElement('div'); title.className='cat-title'; title.textContent=(L10N[cat]||cat);
         const count=document.createElement('div'); count.className='cat-count'; count.id=`count-${slug(cat)}`;
-        head.append(emo, title, count);
 
         const grid=document.createElement('div'); grid.className='grid'; grid.id=`grid-${slug(cat)}`;
+        sectionSkeleton(grid); // 데이터 오기 전 스켈레톤
 
         const more=document.createElement('div'); more.className='more';
-        const btn=document.createElement('button'); btn.className='btn-more'; btn.textContent='더보기';
-        btn.id=`more-${slug(cat)}`; btn.onclick=()=>onMore(cat);
+        const btn=document.createElement('button'); btn.className='btn-more'; btn.textContent='더보기'; btn.id=`more-${slug(cat)}`;
+        btn.onclick=()=>onMore(cat);
         more.appendChild(btn);
 
-        sec.append(head, grid, more);
+        head.append(emo,title,count);
+        sec.append(head,grid,more);
         frag.appendChild(sec);
 
-        // 최초 36개만 반영
-        const list=BY_CAT.get(cat)||[];
+        // 초기 뷰 36개 세팅(데이터 들어오면 대체)
+        const list = BY_CAT.get(cat) || [];
         VIEW_BY_CAT.set(cat, list.slice(0, INITIAL_PER_CAT));
         updateSection(cat);
       }
       UI.sections.appendChild(frag);
 
-      // 섹션이 화면에 들어올 때만 Twemoji 파싱(성능)
-      const io=new IntersectionObserver((entries)=>{
-        for(const e of entries){
-          if(e.isIntersecting){ twParse(e.target); io.unobserve(e.target); }
-        }
+      // 가시화 시점에만 트워모지 파싱
+      const io=new IntersectionObserver((ents)=>{
+        for(const e of ents){ if(e.isIntersecting){ twParse(e.target); io.unobserve(e.target); } }
       },{rootMargin:"600px"});
       document.querySelectorAll('.cat-section').forEach(sec=>io.observe(sec));
     }
 
     function updateSection(cat){
       const grid=document.getElementById(`grid-${slug(cat)}`); if(!grid) return;
-      const list = VIEW_BY_CAT.get(cat) || [];
-      grid.innerHTML='';
-      const frag=document.createDocumentFragment();
-      for(const it of list){ frag.appendChild(makeTile(it)); }
-      grid.appendChild(frag);
+      const list=VIEW_BY_CAT.get(cat)||[];
+      if(list.length){
+        grid.innerHTML='';
+        const frag=document.createDocumentFragment();
+        for(const it of list){ frag.appendChild(makeTile(it)); }
+        grid.appendChild(frag);
+      } // 없으면 스켈레톤 유지
 
       const total = BY_CAT.get(cat)?.length || 0;
-      const left = Math.max(0, total - list.length);
-      document.getElementById(`count-${slug(cat)}`).textContent = `${list.length}/${total}`;
       const moreBtn=document.getElementById(`more-${slug(cat)}`);
-      moreBtn.style.display = left>0 ? 'block' : 'none';
-      moreBtn.disabled=false; moreBtn.textContent='더보기';
-    }
-
-    function makeTile(it){
-      const t=document.createElement('div'); t.className='tile'; t.title=it.name; t.dataset.emoji=it.emoji;
-      // 일단 순수 텍스트 이모지 → 섹션 가시화 시 트워모지로 치환
-      const span=document.createElement('span'); span.textContent=it.emoji; span.style.fontSize='40px'; t.appendChild(span);
-      t.onclick=()=>{ UI.copyOut.value=it.emoji; copyToClipboard(it.emoji); };
-      return t;
+      document.getElementById(`count-${slug(cat)}`).textContent = total ? `${list.length}/${total}` : '';
+      if(total && list.length < total){ moreBtn.style.display='block'; moreBtn.disabled=false; moreBtn.textContent='더보기'; }
+      else { moreBtn.style.display='none'; }
     }
 
     function onMore(cat){
-      const list = BY_CAT.get(cat)||[];
-      const cur  = VIEW_BY_CAT.get(cat)||[];
-      if(cur.length >= list.length) return;
+      const list = BY_CAT.get(cat) || [];
+      const cur  = VIEW_BY_CAT.get(cat) || [];
+      if(!list.length) return;
       const next = list.slice(0, Math.min(cur.length + MORE_CHUNK, list.length));
       VIEW_BY_CAT.set(cat, next);
       updateSection(cat);
     }
 
     /* =========================================================
-       검색: 한 글자라도 매칭하면 전체에서 검색
-       - 결과가 있으면 카테고리 섹션 숨김, 결과 전용 그리드 표시
+       검색: name_* 전용(부분 일치, 한 글자 매칭)
     ========================================================= */
     function onSearch(){
       const q = lower(UI.search.value);
-      if(!q){ UI.resultWrap.style.display='none'; // 섹션 표시
+      if(!q){
+        UI.resultWrap.style.display='none';
         document.querySelectorAll('.cat-section').forEach(s=>s.style.display='block');
         return;
       }
       const hits=[];
       for(const arr of BY_CAT.values()){
         for(const it of arr){
-          if( lower(it.nameAll).includes(q) ){ hits.push(it); }
+          if( (it.nameAll||'').includes(q) ) hits.push(it);
         }
       }
-      UI.resultTitle.textContent = `검색 결과`;
+      UI.resultTitle.textContent='검색 결과';
       UI.resultCount.textContent = `${hits.length.toLocaleString()}개`;
       UI.resultGrid.innerHTML='';
       const frag=document.createDocumentFragment();
       for(const it of hits){ frag.appendChild(makeTile(it)); }
       UI.resultGrid.appendChild(frag);
       UI.resultWrap.style.display='block';
-      // 카테고리 섹션은 접기
       document.querySelectorAll('.cat-section').forEach(s=>s.style.display='none');
-      // 결과 그리드에 대해서만 트워모지 파싱
       twParse(UI.resultGrid);
     }
 
     /* =========================================================
-       헬퍼
+       데이터 → 카테고리 맵 갱신
     ========================================================= */
-    function slug(s){ return String(s||'').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,''); }
-    function cssEsc(s){ return s.replace(/"/g,'\\"'); }
+    function rebuildFromALL(){
+      BY_CAT.clear();
+      // 표준 카테고리 순서(칩/섹션은 항상 노출)
+      for(const cat of CAT_ORDER) BY_CAT.set(cat, []);
+      for(const it of ALL){
+        const c = BY_CAT.has(it.group) ? it.group : it.group; // 모르는 그룹도 허용
+        if(!BY_CAT.has(c)) BY_CAT.set(c, []);
+        BY_CAT.get(c).push(it);
+      }
+      // 정렬
+      for(const [k,arr] of BY_CAT.entries()){
+        arr.sort((a,b)=> (a.name||'').localeCompare((b.name||''), LOCALE));
+      }
+      const cats = [...BY_CAT.keys()].sort((a,b)=>(CAT_ORDER.indexOf(a)===-1?999:CAT_ORDER.indexOf(a))-(CAT_ORDER.indexOf(b)===-1?999:CAT_ORDER.indexOf(b)));
+
+      buildChips(cats);
+      buildSections(cats);
+      hideStatus();
+    }
+
+    /* =========================================================
+       부트스트랩 (Inline ▶ Data URL ▶ Sheet)
+    ========================================================= */
     async function copyToClipboard(text){
       try{ await navigator.clipboard.writeText(text); toast(); }
       catch(_){ UI.copyOut.value=text; UI.copyOut.select(); document.execCommand('copy'); toast(); }
     }
-
-    /* =========================================================
-       부트스트랩
-       - 1) 캐시 즉시 랜더 (localStorage)
-       - 2) 스프레드시트 fetch → 최신 반영
-       ※ 최초 방문이라 캐시가 없어도 gviz 응답이 일반적으로 빨라서 초기 화면이 빠릅니다.
-    ========================================================= */
-    const CACHE_KEY='emoji_db_v1';
-    function loadCache(){
-      try{
-        const raw=localStorage.getItem(CACHE_KEY); if(!raw) return null;
-        const obj=JSON.parse(raw); if(!Array.isArray(obj)) return null;
-        return obj;
-      }catch(_){ return null; }
-    }
-    function saveCache(arr){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(arr)); }catch(_){ } }
-
-    function rebuild(){
-      // 카테고리 맵 구성
-      BY_CAT.clear();
-      for(const it of ALL){
-        if(!BY_CAT.has(it.group)) BY_CAT.set(it.group, []);
-        BY_CAT.get(it.group).push(it);
-      }
-      // 카테고리 정렬 & 내부 정렬
-      for(const [k,arr] of BY_CAT.entries()){
-        arr.sort((a,b)=> (a.name||'').localeCompare((b.name||''), LOCALE));
-      }
-      buildChips();
-      buildSections();
-      hideStatus();
-    }
+    UI.btnCopy.addEventListener('click', ()=>{ const v=UI.copyOut.value||''; if(v) copyToClipboard(v); });
+    UI.search.addEventListener('input', onSearch);
 
     (async function boot(){
-      showStatus('데이터 로딩 중…');
+      showStatus('초기화…');
 
-      // 1) 캐시 즉시 반영
-      const cached = loadCache();
-      if(cached && cached.length){
-        ALL = cached;
-        rebuild();
-      }
+      // (A) 표준 카테고리로 칩/섹션 뼈대 즉시 생성(스켈레톤 보임)
+      rebuildFromALL(); // ALL이 비어있어도 섹션/칩 생성됨
 
-      // 2) 스프레드시트 최신 로드
+      // (B) 인라인 36개 → 즉시 채움 (People & Body)
       try{
-        const rows = await fetchSheet();
-        const items = normalize(rows);
-        if(items.length){
-          ALL = items;
-          saveCache(ALL);
-          rebuild();
-        }else if(!cached){
-          showStatus('스프레드시트에 데이터가 비어있습니다.');
+        const inline = JSON.parse(document.getElementById('INLINE_PEOPLE').textContent||'[]');
+        const norm = normalizeGeneric(inline);
+        if(norm.length){
+          // 다른 카테고리는 아직 스켈레톤, 피플/바디는 즉시 반영
+          ALL = ALL.concat(norm);
+          rebuildFromALL();
         }
-      }catch(e){
-        if(!cached) showStatus('스프레드시트 로드 실패. 게시(Publish) 상태를 확인하세요.');
+      }catch(_){}
+
+      // (C) Data URL 스냅샷 시도(가장 빠름)
+      const fromData = await loadFromDataURL();
+      if(fromData && fromData.length){
+        ALL = fromData;
+        saveCache(ALL);
+        rebuildFromALL();
+      }else{
+        // (D) Sheet(gviz) 시도(최신성)
+        const fromSheet = await loadFromSheet();
+        if(fromSheet && fromSheet.length){
+          ALL = fromSheet;
+          saveCache(ALL);
+          rebuildFromALL();
+        }else{
+          // (E) 캐시라도 있으면 사용
+          const cached = loadCache();
+          if(cached && cached.length){
+            ALL = cached; rebuildFromALL();
+          }else{
+            // 아무 것도 없어도 People 36개는 이미 보이는 상태
+            showStatus('외부 데이터 없음 — 인라인 데이터로 표시 중');
+            setTimeout(hideStatus, 1200);
+          }
+        }
       }
     })();
-
-    /* UI 이벤트 */
-    UI.search.addEventListener('input', onSearch);
-    UI.btnCopy.addEventListener('click', ()=>{ const v=UI.copyOut.value||''; if(v) copyToClipboard(v); });
-
   </script>
 </body>
 </html>
