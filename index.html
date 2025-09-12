@@ -9,7 +9,7 @@
 
   <style>
     :root{
-      --grid-width: 520px;   /* LCP 최소화를 위해 좁게 시작 (원하면 560px) */
+      --grid-width: 520px;   /* LCP 최소(필요 시 560px) */
       --tile-size: 72px;
       --gap: 8px;
 
@@ -60,8 +60,7 @@
       width:var(--tile-size); height:var(--tile-size);
       display:inline-flex; align-items:center; justify-content:center;
       border-radius:10px; border:1px solid #eee; background:#fff;
-      cursor:pointer; user-select:none; transition:transform .04s ease;
-      will-change: transform;
+      cursor:pointer; user-select:none; transition:transform .04s ease; will-change: transform;
     }
     .tile:hover{ transform:translateY(-1px); background:#fafafa; }
     .tile img{ width:var(--tile-size); height:var(--tile-size); image-rendering:-webkit-optimize-contrast; }
@@ -73,8 +72,9 @@
     }
     #toast.show{ opacity:1; }
     #status{ max-width:960px; margin:16px auto 0; padding:8px 12px; color:#444; text-align:center; display:none; font-size:14px; }
-    #legal{ max-width:var(--cat-table-maxw); margin:24px auto 40px; padding:0 12px; font-size:12px; color:#777; }
 
+    #legal{ max-width:var(--cat-table-maxw); margin:24px auto 40px; padding:0 12px; font-size:12px; color:#777; }
+    #legal a{ color:inherit; text-decoration:underline; }
     @media (max-width: 720px){
       :root{ --cat-font:14px; }
       #toolbar .inner{ grid-template-columns: 1fr; }
@@ -117,17 +117,12 @@
 
   <!-- 앱 스크립트 -->
   <script type="module">
-    /* ===== 0) 고정 경로/설정 ===== */
+    /* ===== 0) 고정/설정 ===== */
     const BASE = (()=>{ const p=location.pathname.split('/').filter(Boolean); return p.length?`/${p[0]}/`:'/' })();
     const DATA_BASE    = BASE + 'data/';
     const SPRITES_BASE = BASE + 'sprites/';
-
-    // 렌더 설정: 카테고리 선택 시 "끝까지" 다 붙인다(청크로 추가 로드)
-    const FIRST_CHUNK = 240;   // 첫 화면 즉시 채움
-    const NEXT_CHUNK  = 240;   // 스크롤 추가량
-
-    // 기본 카테고리: 스마일/감정
-    const DEFAULT_PREFS = ["Smileys & Emotion", "스마일/감정"];
+    const FIRST_CHUNK = 240, NEXT_CHUNK = 240;      // 카테고리 전량 로드(스크롤 추가)
+    const DEFAULT_PREFS = ["Smileys & Emotion", "스마일/감정"];  // 기본 진입 카테고리
 
     const UI = {
       search:   document.getElementById('search'),
@@ -139,8 +134,6 @@
       toast:    document.getElementById('toast'),
     };
 
-    let BUILD=null, SPRITE_MAP=null, SUPPORT_HINTS=null;
-    let ALL_ITEMS=[], CAT_MAP=null, ACTIVE_CAT=null, BASE_LIST=[], VIEW_LIST=[];
     const koLabelMap={
       "Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연",
       "Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동",
@@ -152,27 +145,60 @@
     const hideStatus=()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
     const showToast=(t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
 
-    /* ===== 1) 데이터 로드 ===== */
+    const codeToEmoji=(code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
+    const pick=(obj, keys)=>{ for(const k of keys){ if(obj[k]!=null&&obj[k]!=='') return obj[k]; const k2=Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2&&obj[k2]!=null&&obj[k2]!=='') return obj[k2]; } return ''; };
     async function fetchJSON(u){ try{ const r=await fetch(u,{cache:"no-cache"}); if(r.ok) return await r.json(); }catch(_){ } return null; }
+
+    // 리포 정보로 CDN 폴백 경로 생성
+    function repoInfo(){
+      const user = location.hostname.replace('.github.io','');
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : `${user}.github.io`;
+      return { user, repo };
+    }
+
+    /* ===== 1) 데이터 로드 (로컬 → jsDelivr → RAW) ===== */
+    let BUILD=null, SPRITE_MAP=null, SUPPORT_HINTS=null;
     async function loadData(){
-      const buildUrl  = DATA_BASE + 'build.json';
-      const spriteUrl = SPRITES_BASE + 'SPRITE_MAP.json';
-      const hintsUrl  = SPRITES_BASE + 'SUPPORT_HINTS.json';
-      BUILD       = await fetchJSON(buildUrl);
-      SPRITE_MAP  = await fetchJSON(spriteUrl);
-      SUPPORT_HINTS = await fetchJSON(hintsUrl);
+      const { user, repo } = repoInfo();
+      const branches = ["main","gh-pages","master"];
+
+      const localBuilds  = [ `${DATA_BASE}build.json`, `/data/build.json`, `data/build.json` ];
+      const cdnBuilds    = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/data/build.json`);
+      const rawBuilds    = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/data/build.json`);
+
+      const localSprites = [ `${SPRITES_BASE}SPRITE_MAP.json`, `/sprites/SPRITE_MAP.json`, `sprites/SPRITE_MAP.json` ];
+      const cdnSprites   = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SPRITE_MAP.json`);
+      const rawSprites   = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SPRITE_MAP.json`);
+
+      const localHints   = [ `${SPRITES_BASE}SUPPORT_HINTS.json`, `/sprites/SUPPORT_HINTS.json`, `sprites/SUPPORT_HINTS.json` ];
+      const cdnHints     = branches.map(b=>`https://cdn.jsdelivr.net/gh/${user}/${repo}@${b}/sprites/SUPPORT_HINTS.json`);
+      const rawHints     = branches.map(b=>`https://raw.githubusercontent.com/${user}/${repo}/${b}/sprites/SUPPORT_HINTS.json`);
+
+      async function pickJSON(cands, label){
+        for(const u of cands){
+          try{
+            const r = await fetch(u,{cache:"no-cache"});
+            if(r.ok){ const j=await r.json(); j.__src=u; console.log(`[OK] ${label}:`, u); return j; }
+          }catch(_){}
+        }
+        return null;
+      }
+
+      BUILD       = await pickJSON([...localBuilds, ...cdnBuilds, ...rawBuilds], "build.json");
+      SPRITE_MAP  = await pickJSON([...localSprites, ...cdnSprites, ...rawSprites], "SPRITE_MAP.json");
+      SUPPORT_HINTS = await pickJSON([...localHints, ...cdnHints, ...rawHints], "SUPPORT_HINTS.json");
 
       if(!BUILD){
-        showStatus(`/data/build.json이 없습니다. (경로: ${buildUrl})<br/>Actions가 /data/build.json을 커밋하도록 유지하세요.`);
+        showStatus(`/data/build.json이 없습니다. (로컬/CDN/RAW 폴백 모두 실패)`);
         return false;
       }
+      hideStatus();
       return true;
     }
 
     /* ===== 2) 정규화(name_*만 검색) ===== */
-    const codeToEmoji=(code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
-    const pick=(obj, keys)=>{ for(const k of keys){ if(obj[k]!=null&&obj[k]!=='') return obj[k]; const k2=Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2&&obj[k2]!=null&&obj[k2]!=='') return obj[k2]; } return ''; };
-
+    let ALL_ITEMS=[], CAT_MAP=null, ACTIVE_CAT=null, BASE_LIST=[], VIEW_LIST=[];
     function normalizeItems(root){
       const out=[]; const seen=new Set();
       function walk(node, inheritedCat=''){
@@ -242,7 +268,8 @@
           const label=document.createElement("span");
           label.className="cat-label"; label.textContent = pickLabel(cat);
 
-          btn.appendChild(em); btn.appendChild(label); td.appendChild(btn); tr.appendChild(td);
+          btn.appendChild(em); btn.appendChild(label);
+          td.appendChild(btn); tr.appendChild(td);
         }
         while(tr.children.length<columns) tr.appendChild(document.createElement("td"));
         tbody.appendChild(tr);
@@ -301,14 +328,14 @@
       UI.grid.innerHTML="";
       let idx=0;
 
-      // 첫 페인트: 넉넉히
-      const first = list.slice(0, FIRST_CHUNK);
-      const f1 = document.createDocumentFragment();
+      // 첫 페인트
+      const first=list.slice(0, FIRST_CHUNK);
+      const f1=document.createDocumentFragment();
       for(const it of first) f1.appendChild(makeTile(it));
       UI.grid.appendChild(f1);
       idx = FIRST_CHUNK;
 
-      // 이후 스크롤에 맞춰 끝까지 추가
+      // 끝까지 추가
       const sentinel=document.createElement("div");
       UI.grid.appendChild(sentinel);
       const io=new IntersectionObserver((entries)=>{
@@ -322,7 +349,7 @@
       },{rootMargin:"900px"});
       io.observe(sentinel);
 
-      showStatus(`카테고리: <b>${pickLabel(ACTIVE_CAT)}</b> · 항목: <b>${list.length.toLocaleString()}</b>`);
+      showStatus(`카테고리: <b>${pickLabel(ACTIVE_CAT)}</b> · 항목: <b>${list.length.toLocaleString()}</b> · 소스: <small>${(BUILD && BUILD.__src) ? BUILD.__src : 'local'}</small>`);
     }
 
     /* ===== 5) 카테고리/검색 ===== */
@@ -335,7 +362,7 @@
     function applySearch(){
       const q = UI.search.value.trim().toLowerCase();
       VIEW_LIST = !q ? BASE_LIST : BASE_LIST.filter(it => (it.nameText || it.name || '').includes(q));
-      renderListChunked(VIEW_LIST);   // 선택한 카테고리 “전부” 끝까지 로드
+      renderListChunked(VIEW_LIST);
     }
 
     /* ===== 6) 복사 ===== */
@@ -357,7 +384,7 @@
       CAT_MAP = buildCatMap(ALL_ITEMS);
       buildCategoryTable(CAT_MAP);
 
-      // 기본: 스마일/감정 (없으면 첫 카테고리)
+      // 기본 진입: 스마일/감정 우선, 없으면 첫 카테고리
       const firstCat = [...CAT_MAP.keys()].find(k => DEFAULT_PREFS.includes(k)) || [...CAT_MAP.keys()][0];
       setActiveCategory(firstCat);
       hideStatus();
