@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>프로 이모지 검색 — 하이브리드 인라인 PRO (36개 + 더보기)</title>
+  <title>프로 이모지 검색 — 하이브리드(36개+더보기)</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <style>
     :root{
-      --grid-width:520px;   /* 초기 LCP 최소화. 필요 시 560px */
-      --tile:72px;
-      --gap:8px;
-      --maxw:1100px;
-      --cat-h:48px;
-      --cat-f:15px;
+      --grid-width:520px;   /* LCP 안정권 (원하면 560px) */
+      --tile:72px;          /* 타일 크기 */
+      --gap:8px;            /* 타일 간격 */
+      --maxw:1100px;        /* 상단/카테고리 폭 */
+      --cat-h:48px;         /* 카테고리 버튼 높이 */
+      --cat-f:15px;         /* 카테고리 글자 크기 */
     }
     *{box-sizing:border-box}
     html,body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Apple Color Emoji,Noto Color Emoji,sans-serif}
@@ -31,8 +31,7 @@
     table.cat{width:100%;table-layout:fixed;border-collapse:collapse;font-size:var(--cat-f)}
     table.cat td{padding:0;border:1px solid #f1f1f1}
     .cat-btn{width:100%;height:var(--cat-h);display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:center;padding:8px 10px;border:0;background:#fff;cursor:pointer}
-    .cat-btn:hover{background:#fafafa}
-    .cat-btn.active{outline:2px solid rgba(0,0,0,.08);background:#f9f9ff}
+    .cat-btn:hover{background:#fafafa}.cat-btn.active{outline:2px solid rgba(0,0,0,.08);background:#f9f9ff}
     .cat-emo{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:20px}
     .cat-lab{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:left}
 
@@ -43,7 +42,7 @@
     .tile:hover{transform:translateY(-1px);background:#fafafa}
     .tile img{width:var(--tile);height:var(--tile);image-rendering:-webkit-optimize-contrast}
 
-    /* 더보기 버튼 */
+    /* 더보기 */
     #moreWrap{max-width:var(--grid-width);margin:-4px auto 40px;padding:0 8px;display:none}
     #btnMore{width:100%;height:44px;border:1px solid #ddd;background:#fff;border-radius:10px;cursor:pointer;font-size:15px}
     #btnMore[disabled]{opacity:.6;cursor:default}
@@ -61,7 +60,8 @@
       #catWrap{top:112px}
     }
   </style>
-  <!-- Twemoji PNG (SVG OFF) -->
+
+  <!-- Twemoji: PNG 강제(SVG OFF) -->
   <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -84,7 +84,7 @@
   </section>
 
   <!-- 상태/그리드/더보기/토스트 -->
-  <div id="status"></div>
+  <div id="status">초기 데이터 준비 중…</div>
   <main id="gridWrap"><section id="grid"></section></main>
   <div id="moreWrap"><button id="btnMore" type="button">더보기</button></div>
   <div id="toast">복사 완료!</div>
@@ -96,11 +96,8 @@
     Unicode data © The Unicode Consortium.
   </footer>
 
-  <!-- 🔹 인라인 데이터: People & Body(피플/바디) — 최소 36개 이상 주입 권장 -->
-  <!--  운영 시 빌드 단계에서 이 배열을 'People & Body' 카테고리 전체로 주입하세요.
-      (필드: group, name/name_ko/name_en, code(선택), emoji) -->
-  <script type="application/json" id="INLINE_PEOPLE">
-  [
+  <!-- 🔹 인라인 데이터(즉시 렌더용): People & Body 36개 — 순수 JSON(주석/마지막 콤마 없음) -->
+  <script type="application/json" id="INLINE_PEOPLE">[
     {"group":"People & Body","name":"person","emoji":"🧑"},
     {"group":"People & Body","name":"man","emoji":"👨"},
     {"group":"People & Body","name":"woman","emoji":"👩"},
@@ -109,14 +106,6 @@
     {"group":"People & Body","name":"baby","emoji":"👶"},
     {"group":"People & Body","name":"old man","emoji":"👴"},
     {"group":"People & Body","name":"old woman","emoji":"👵"},
-    {"group":"People & Body","name":"person gesturing OK","emoji":"🙆"},
-    {"group":"People & Body","name":"person gesturing NO","emoji":"🙅"},
-    {"group":"People & Body","name":"person raising hand","emoji":"🙋"},
-    {"group":"People & Body","name":"person bowing","emoji":"🙇"},
-    {"group":"People & Body","name":"person walking","emoji":"🚶"},
-    {"group":"People & Body","name":"person running","emoji":"🏃"},
-    {"group":"People & Body","name":"person biking","emoji":"🚴"},
-    {"group":"People & Body","name":"person swimming","emoji":"🏊"},
     {"group":"People & Body","name":"waving hand","emoji":"👋"},
     {"group":"People & Body","name":"thumbs up","emoji":"👍"},
     {"group":"People & Body","name":"thumbs down","emoji":"👎"},
@@ -128,26 +117,25 @@
     {"group":"People & Body","name":"crossed fingers","emoji":"🤞"},
     {"group":"People & Body","name":"OK hand","emoji":"👌"},
     {"group":"People & Body","name":"call me hand","emoji":"🤙"},
-    {"group":"People & Body","name":"backhand index pointing left","emoji":"👈"},
-    {"group":"People & Body","name":"backhand index pointing right","emoji":"👉"},
-    {"group":"People & Body","name":"backhand index pointing up","emoji":"👆"},
-    {"group":"People & Body","name":"backhand index pointing down","emoji":"👇"},
+    {"group":"People & Body","name":"backhand index left","emoji":"👈"},
+    {"group":"People & Body","name":"backhand index right","emoji":"👉"},
+    {"group":"People & Body","name":"backhand index up","emoji":"👆"},
+    {"group":"People & Body","name":"backhand index down","emoji":"👇"},
     {"group":"People & Body","name":"raised hand","emoji":"✋"},
     {"group":"People & Body","name":"raised back of hand","emoji":"🤚"},
     {"group":"People & Body","name":"vulcan salute","emoji":"🖖"},
     {"group":"People & Body","name":"sign of the horns","emoji":"🤘"},
     {"group":"People & Body","name":"love-you gesture","emoji":"🤟"},
     {"group":"People & Body","name":"flexed biceps","emoji":"💪"},
-    {"group":"People & Body","name":"leg","emoji":"🦵"},
-    {"group":"People & Body","name":"foot","emoji":"🦶"},
-    {"group":"People & Body","name":"ear","emoji":"👂"},
-    {"group":"People & Body","name":"nose","emoji":"👃"},
-    {"group":"People & Body","name":"eyes","emoji":"👀"},
-    {"group":"People & Body","name":"mouth","emoji":"👄"},
-    {"group":"People & Body","name":"tongue","emoji":"👅"}
-    /* ⇧ 실제 운용 시 People & Body 전체로 대체 */
-  ]
-  </script>
+    {"group":"People & Body","name":"person walking","emoji":"🚶"},
+    {"group":"People & Body","name":"person running","emoji":"🏃"},
+    {"group":"People & Body","name":"person biking","emoji":"🚴"},
+    {"group":"People & Body","name":"person swimming","emoji":"🏊"},
+    {"group":"People & Body","name":"person raising hand","emoji":"🙋"},
+    {"group":"People & Body","name":"person gesturing OK","emoji":"🙆"},
+    {"group":"People & Body","name":"person gesturing NO","emoji":"🙅"},
+    {"group":"People & Body","name":"person bowing","emoji":"🙇"}
+  ]</script>
 
   <script type="module">
     /* =========================
@@ -157,8 +145,8 @@
     const DATA_BASE    = BASE + 'data/';
     const SPRITES_BASE = BASE + 'sprites/';
 
-    const INITIAL_COUNT = 36;      // 첫 화면 개수(안전값)
-    const NEXT_CHUNK    = 240;     // 더보기 이후 자동 부착 청크
+    const INITIAL_COUNT = 36;      // 첫 화면 개수
+    const NEXT_CHUNK    = 240;     // 더보기 이후 자동 부착
     const PREF = ["People & Body","피플/바디"];  // 기본 카테고리
 
     const UI = {
@@ -173,23 +161,34 @@
       toast:    document.getElementById('toast'),
     };
 
-    const twemojiParse = (el)=> window.twemoji?.parse(el,{ base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png" });
-    const showStatus = (m)=>{ UI.status.style.display='block'; UI.status.innerHTML = m; };
-    const hideStatus = ()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
-    const toast = (t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
+    const showStatus=(m)=>{ UI.status.style.display='block'; UI.status.innerHTML=m; };
+    const hideStatus=()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
+    const toast=(t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
 
-    const codeToEmoji = (code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
-    const pick = (obj, keys)=>{ for(const k of keys){ if(obj[k]!=null && obj[k]!=="") return obj[k];
-      const k2 = Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2 && obj[k2]!=null && obj[k2]!=="") return obj[k2]; } return ''; };
+    // Twemoji PNG 파서(타일 단위)
+    const twemojiParse=(el)=>window.twemoji?.parse(el,{ base:"https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/", folder:"72x72", ext:".png" });
+
+    // 안전 JSON 파서(주석/트레일링 콤마 허용)
+    function parseJSONRelaxed(text){
+      if(!text) return [];
+      let t = String(text);
+      t = t.replace(/\/\*[\s\S]*?\*\//g,'');               // /* ... */ 주석 제거
+      t = t.replace(/(^|[^:])\/\/.*$/gm, '$1');            // // 주석 제거( http:// 보존 )
+      t = t.replace(/,\s*([}\]])/g, '$1');                 // 마지막 콤마 제거
+      try{ return JSON.parse(t); }catch(_){ return []; }
+    }
+
+    const codeToEmoji=(code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
+    const pick=(obj,keys)=>{ for(const k of keys){ if(obj[k]!=null&&obj[k]!=="") return obj[k]; const k2=Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2&&obj[k2]!=null&&obj[k2]!=="") return obj[k2]; } return ''; };
 
     const KO = {"Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연","Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동","Objects":"사물","Symbols":"기호","Flags":"국기"};
     const ORDER = ["Smileys & Emotion","People & Body","Animals & Nature","Food & Drink","Travel & Places","Activities","Objects","Symbols","Flags"];
-    const label = (raw)=> KO[raw] || raw || "기타";
+    const label=(raw)=>KO[raw]||raw||"기타";
 
     // 상태
     let BUILD=null, SPRITE_MAP=null, SUPPORT_HINTS=null;
     let ALL_ITEMS=[], CAT_MAP=new Map();
-    let ACTIVE_CAT=null, BASE_LIST=[], VIEW_LIST=[], RENDERED_COUNT=0;
+    let ACTIVE_CAT=null, BASE_LIST=[], VIEW_LIST=[], RENDERED_COUNT=0, EXT_READY=false;
 
     async function fetchJSON(u){ try{ const r=await fetch(u,{cache:"no-cache"}); if(r.ok) return await r.json(); }catch(_){ } return null; }
 
@@ -202,16 +201,21 @@
         if(!node) return;
         if(Array.isArray(node)){ for(const v of node) walk(v, inherited); return; }
         if(typeof node!=='object') return;
+
         const group = pick(node, ['group','category','major','cat','section','type']) || inherited;
         if (Array.isArray(node.items)) { for(const v of node.items) walk(v, group); }
+
         const code = pick(node, ['code','hex','u','unified','unicode','codepoint','cp']);
         const emojiChar = node.emoji || (code ? codeToEmoji(code) : '');
+
         if (emojiChar || code){
           const key = code || emojiChar;
           if(seen.has(key)) return; seen.add(key);
+
           const nameFields = Object.keys(node).filter(k=>/^name[_-]/i.test(k)||k==='name');
           const names = nameFields.map(k=>String(node[k])).filter(Boolean);
           const primary = pick(node,['name_ko','name_kr','name_korean','name']) || pick(node,['name_en','label','cldr','short_name','id']) || '';
+
           out.push({
             group: group || pick(node,['group','category','major','cat']) || '기타',
             name: primary,
@@ -261,10 +265,10 @@
       tbody.onclick = async (e)=>{
         const b=e.target.closest('.cat-btn'); if(!b) return;
         const nextCat=b.dataset.cat;
-        // 외부 데이터가 아직 병합 전이고, 다른 카테고리면 선로드
-        if(nextCat!==ACTIVE_CAT && nextCat!=="People & Body" && !BUILD){
+        // 외부 데이터가 준비 안됐고, 다른 카테고리를 여는 경우 → 즉시 병합 후 이동
+        if(nextCat!==ACTIVE_CAT && !EXT_READY){
           showStatus("데이터 로드 중…");
-          await loadExternalIfNeeded();
+          await loadExternalIfNeeded();  // 병합
           hideStatus();
         }
         setActiveCategory(nextCat);
@@ -291,7 +295,7 @@
         t.style.width=bw+'px'; t.style.height=bh+'px';
         t.dataset.emoji=it.emoji; return t;
       }
-      // 2) PNG
+      // 2) PNG 개별
       if(it.png && !(SUPPORT_HINTS?.block?.includes(it.code))){
         const img=document.createElement('img'); img.loading='lazy'; img.decoding='async';
         img.src=it.png; img.alt=it.name||it.code||''; t.appendChild(img);
@@ -310,7 +314,7 @@
       for(let i=0;i<RENDERED_COUNT;i++) frag.appendChild(makeTile(list[i]));
       UI.grid.appendChild(frag);
 
-      // 더보기 노출 제어
+      // 더보기 버튼 표시/숨김
       if(list.length > RENDERED_COUNT){
         UI.moreWrap.style.display='block';
         UI.btnMore.disabled=false; UI.btnMore.textContent='더보기';
@@ -320,13 +324,14 @@
     }
 
     function renderRestAuto(list){
+      // 이미 다 붙였으면 종료
+      if(RENDERED_COUNT >= list.length){ UI.moreWrap.style.display='none'; return; }
+
       UI.btnMore.disabled=true; UI.btnMore.textContent='불러오는 중…';
       let idx = RENDERED_COUNT;
+
       const step = ()=>{
-        if(idx >= list.length){
-          UI.moreWrap.style.display='none';
-          return;
-        }
+        if(idx >= list.length){ UI.moreWrap.style.display='none'; return; }
         const end = Math.min(idx + NEXT_CHUNK, list.length);
         const frag=document.createDocumentFragment();
         for(let i=idx;i<end;i++) frag.appendChild(makeTile(list[i]));
@@ -345,7 +350,7 @@
       ACTIVE_CAT = cat;
       document.querySelectorAll('.cat-btn').forEach(b=> b.classList.toggle('active', b.dataset.cat===cat));
       BASE_LIST = CAT_MAP.get(cat) || [];
-      applySearch();  // 초기 36개 + 더보기
+      applySearch(); // 초기 36개 렌더
     }
 
     function applySearch(){
@@ -353,24 +358,29 @@
       VIEW_LIST = !q ? BASE_LIST : BASE_LIST.filter(it => (it.nameText || it.name || '').includes(q));
       renderInitial(VIEW_LIST);
       showStatus(`카테고리: <b>${label(ACTIVE_CAT)}</b> · 항목: <b>${VIEW_LIST.length.toLocaleString()}</b> (첫 화면 ${INITIAL_COUNT}개)`);
+      // 첫 렌더 끝났으니 상태 숨김
+      setTimeout(hideStatus, 0);
     }
 
     /* =========================
-       4) 데이터(인라인 → 외부 선로딩/병합)
+       4) 외부 데이터 선로딩/병합
     ==========================*/
-    async function hydrateExternalData(){
-      // 백그라운드 선로딩(캐시 워밍)
+    function hydrateExternalData(){
+      // 백그라운드 캐시 워밍 (UI는 즉시 표출됨)
       fetch(DATA_BASE + 'build.json').catch(()=>{});
       fetch(SPRITES_BASE + 'SPRITE_MAP.json').catch(()=>{});
       fetch(SPRITES_BASE + 'SUPPORT_HINTS.json').catch(()=>{});
     }
 
     async function loadExternalIfNeeded(){
-      if(BUILD && SPRITE_MAP!==null) return true; // 이미 병합됨
-      BUILD = await fetchJSON(DATA_BASE + 'build.json');
-      SPRITE_MAP = await fetchJSON(SPRITES_BASE + 'SPRITE_MAP.json') || SPRITE_MAP;
-      SUPPORT_HINTS = await fetchJSON(SPRITES_BASE + 'SUPPORT_HINTS.json') || SUPPORT_HINTS;
-      if(!BUILD) return false;
+      if(EXT_READY) return true;
+      const [b, s, h] = await Promise.all([
+        fetchJSON(DATA_BASE + 'build.json'),
+        fetchJSON(SPRITES_BASE + 'SPRITE_MAP.json'),
+        fetchJSON(SPRITES_BASE + 'SUPPORT_HINTS.json')
+      ]);
+      if(b){ BUILD=b; } if(s){ SPRITE_MAP=s; } if(h){ SUPPORT_HINTS=h; }
+      if(!BUILD){ EXT_READY=false; return false; }
 
       const root = BUILD.items || BUILD.emojis || BUILD.data || BUILD.rows || BUILD;
       const ext  = Array.isArray(root) ? normalizeItems(root) : normalizeItems([root]);
@@ -378,12 +388,13 @@
       const seen = new Set(ALL_ITEMS.map(x=>x.code||x.emoji));
       const merged = ALL_ITEMS.slice();
       for(const it of ext){
-        const key=it.code||it.emoji;
+        const key = it.code || it.emoji;
         if(!seen.has(key)){ seen.add(key); merged.push(it); }
       }
       ALL_ITEMS = merged;
       CAT_MAP   = rebuildCatMap(ALL_ITEMS);
       buildCategoryTable(CAT_MAP);
+      EXT_READY = true;
       return true;
     }
 
@@ -401,7 +412,20 @@
       UI.copyOut.value = emoji; copyToClipboard(emoji);
     });
     UI.search.addEventListener('input', ()=>applySearch());
-    UI.btnMore.addEventListener('click', ()=> renderRestAuto(VIEW_LIST));
+    UI.btnMore.addEventListener('click', async ()=>{
+      // 아직 추가 데이터가 없으면 외부 병합 먼저 시도
+      if(VIEW_LIST.length <= RENDERED_COUNT){
+        const ok = await loadExternalIfNeeded();
+        // 병합 후 현재 카테고리 기준으로 목록 갱신
+        const q = UI.search.value.trim().toLowerCase();
+        BASE_LIST = CAT_MAP.get(ACTIVE_CAT) || [];
+        VIEW_LIST = !q ? BASE_LIST : BASE_LIST.filter(it => (it.nameText || it.name || '').includes(q));
+        if(!ok && VIEW_LIST.length <= RENDERED_COUNT){
+          UI.btnMore.textContent='추가 데이터 없음'; setTimeout(()=>UI.moreWrap.style.display='none', 1200); return;
+        }
+      }
+      renderRestAuto(VIEW_LIST);
+    });
 
     window.addEventListener('resize', ()=>{
       if(!CAT_MAP.size) return;
@@ -410,28 +434,22 @@
     });
 
     /* =========================
-       6) 부트스트랩
+       6) 부트스트랩 — 인라인 먼저, 즉시 36개
     ==========================*/
-    (async function boot(){
-      showStatus("초기 데이터 준비 중…");
-
-      // (A) 인라인 People & Body 즉시 표시
-      const inlinePeople = JSON.parse(document.getElementById('INLINE_PEOPLE').textContent || "[]");
-      const normPeople = normalizeItems(inlinePeople);
+    (function boot(){
+      // 인라인 데이터 안전 파싱 → 즉시 렌더
+      const inlineText = (document.getElementById('INLINE_PEOPLE')?.textContent)||'[]';
+      const inlineData = parseJSONRelaxed(inlineText);
+      const normPeople = normalizeItems(inlineData);
       ALL_ITEMS = normPeople;
       CAT_MAP   = rebuildCatMap(ALL_ITEMS);
       buildCategoryTable(CAT_MAP);
 
-      // 기본 카테고리: People & Body (없으면 첫 카테고리)
       const first = [...CAT_MAP.keys()].find(k=>PREF.includes(k)) || [...CAT_MAP.keys()][0];
-      setActiveCategory(first);
-      hideStatus();
+      setActiveCategory(first);  // 여기서 바로 36개 렌더됨
 
-      // (B) 외부 데이터 선로딩
+      // 외부 데이터는 백그라운드 선로딩(클릭/더보기 전에 준비됨)
       hydrateExternalData();
-
-      // (C) 사용자가 다른 카테고리로 이동하면, 그 시점에 병합(이미 선로딩된 상태라 즉시 반응)
-      // → 위 카테고리 버튼 클릭 핸들러에서 처리
     })();
   </script>
 </body>
