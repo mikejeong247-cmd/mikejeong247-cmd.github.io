@@ -4,12 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>프로 이모지 검색 — 전체 보기(카테고리 상단)</title>
-  <meta name="description" content="카테고리 상단 유지, 전체 이모지 전부 즉시 렌더. name_*만 검색." />
+  <meta name="description" content="카테고리 상단 유지, 전체 이모지 즉시 렌더. build.json 없어도 스프라이트/샘플로 복구. name_*만 검색." />
 
   <style>
     :root{
-      /* 초기 LCP 최소화를 위해 좁게 시작 (원하면 560px로 조정) */
-      --grid-width: 520px;
+      --grid-width: 520px;   /* 초기 LCP 최소화. 필요 시 560px */
       --tile-size: 72px;
       --gap: 8px;
 
@@ -72,7 +71,7 @@
       background:rgba(0,0,0,.8); color:#fff; padding:8px 12px; border-radius:20px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease;
     }
     #toast.show{ opacity:1; }
-    #status{ max-width:720px; margin:20px auto; padding:12px; color:#444; text-align:center; display:none; }
+    #status{ max-width:960px; margin:16px auto 0; padding:8px 12px; color:#444; text-align:center; display:none; font-size:14px; }
 
     @media (max-width: 720px){
       :root{ --cat-font:14px; }
@@ -110,21 +109,17 @@
 
   <!-- 앱 스크립트 -->
   <script type="module">
-    /* ===== 0) 전역/설정 ===== */
-    // 동일 도메인만 사용(폴백/외부 없음)
-    const BASE = (()=>{
-      const parts = location.pathname.split('/').filter(Boolean);
-      return parts.length ? `/${parts[0]}/` : '/';
-    })();
+    /* ===== 0) 상수/도움 함수 ===== */
+    // 동일 도메인 고정
+    const BASE = (()=>{ const p=location.pathname.split('/').filter(Boolean); return p.length?`/${p[0]}/`:'/' })();
     const DATA_BASE    = BASE + 'data/';
     const SPRITES_BASE = BASE + 'sprites/';
 
-    // 렌더링 모드: 기본 '전체 한번에', 주소에 ?mode=chunk 넣으면 청크 모드
+    // 렌더링 모드: 기본 전체 렌더 / ?mode=chunk → 청크 렌더
     const params = new URLSearchParams(location.search);
-    const RENDER_ALL = params.get('mode') !== 'chunk';  // true: 전체렌더, false: 청크렌더
-    const FIRST_CHUNK = 240, NEXT_CHUNK = 240;          // chunk 모드일 때만 사용
+    const RENDER_ALL = params.get('mode') !== 'chunk';
+    const FIRST_CHUNK = 240, NEXT_CHUNK = 240; // chunk일 때만 사용
 
-    // All 카테고리
     const ALL_KEY='__ALL__', ALL_LABEL='전체', ALL_ICON='⭐';
 
     const UI = {
@@ -139,8 +134,6 @@
 
     let BUILD=null, SPRITE_MAP=null, SUPPORT_HINTS=null;
     let ALL_ITEMS=[], CAT_MAP=null, ACTIVE_CAT=ALL_KEY, BASE_LIST=[], VIEW_LIST=[];
-    let totalRendered = 0;
-
     const koLabelMap={
       "Smileys & Emotion":"스마일/감정","People & Body":"피플/바디","Animals & Nature":"동물/자연",
       "Food & Drink":"음식/음료","Travel & Places":"여행/장소","Activities":"활동",
@@ -152,27 +145,31 @@
     const hideStatus=()=>{ UI.status.style.display='none'; UI.status.textContent=''; };
     const showToast=(t="복사 완료!")=>{ UI.toast.textContent=t; UI.toast.classList.add('show'); setTimeout(()=>UI.toast.classList.remove('show'),900); };
 
-    /* ===== 1) 데이터 로드 ===== */
-    async function fetchJSON(u){ try{ const r=await fetch(u,{cache:"no-cache"}); if(r.ok) return await r.json(); }catch(_){ } return null; }
-    async function loadData(){
-      const buildUrl  = DATA_BASE + 'build.json';
-      const spriteUrl = SPRITES_BASE + 'SPRITE_MAP.json';
-      const hintsUrl  = SPRITES_BASE + 'SUPPORT_HINTS.json';
-      BUILD       = await fetchJSON(buildUrl);
-      SPRITE_MAP  = await fetchJSON(spriteUrl);
-      SUPPORT_HINTS = await fetchJSON(hintsUrl);
-
-      if(!BUILD){
-        showStatus(`/data/build.json이 없습니다. (경로: ${buildUrl})<br/>Actions 실행 후 /data/build.json 커밋 상태를 확인하세요.`);
-        return false;
-      }
-      return true;
-    }
-
-    /* ===== 2) 정규화(name_*만 검색) ===== */
     const codeToEmoji=(code)=>{ try{ return String.fromCodePoint(...String(code).split('-').map(h=>parseInt(h,16))); }catch(_){ return "❓"; } };
     const pick=(obj, keys)=>{ for(const k of keys){ if(obj[k]!=null&&obj[k]!=='') return obj[k]; const k2=Object.keys(obj).find(x=>x.toLowerCase()===k.toLowerCase()); if(k2&&obj[k2]!=null&&obj[k2]!=='') return obj[k2]; } return ''; };
 
+    async function fetchJSON(u){ try{ const r=await fetch(u,{cache:"no-cache"}); if(r.ok) return await r.json(); }catch(_){ } return null; }
+
+    /* ===== 1) 응급 샘플(빈 화면 방지) ===== */
+    function emergencySample(){
+      const s=(g,n,c)=>({group:g,name:n,nameText:String(n).toLowerCase(),code:c,emoji:codeToEmoji(c)});
+      const A=[
+        s("Smileys & Emotion","grinning face","1F600"), s("Smileys & Emotion","smiling face","263A"),
+        s("Smileys & Emotion","face with tears of joy","1F602"), s("Smileys & Emotion","heart eyes","1F60D"),
+        s("People & Body","person","1F9D1"), s("People & Body","man","1F468"), s("People & Body","woman","1F469"), s("People & Body","person running","1F3C3"),
+        s("Animals & Nature","cat face","1F431"), s("Animals & Nature","dog face","1F436"), s("Animals & Nature","seedling","1F331"), s("Animals & Nature","sun","2600"),
+        s("Food & Drink","hamburger","1F354"), s("Food & Drink","pizza","1F355"), s("Food & Drink","coffee","2615"), s("Food & Drink","bento box","1F371"),
+        s("Activities","soccer ball","26BD"), s("Activities","basketball","1F3C0"), s("Activities","video game","1F3AE"), s("Activities","trophy","1F3C6"),
+        s("Objects","mobile phone","1F4F1"), s("Objects","laptop","1F4BB"), s("Objects","camera","1F4F7"), s("Objects","gem stone","1F48E"),
+        s("Symbols","check mark","2714"), s("Symbols","cross mark","274C"), s("Symbols","sparkles","2728"), s("Symbols","heart","2764"),
+        s("Travel & Places","airplane","2708"), s("Travel & Places","automobile","1F697"), s("Travel & Places","house","1F3E0"), s("Travel & Places","mountain","26F0"),
+        s("Flags","chequered flag","1F3C1"), s("Flags","triangular flag","1F6A9"), s("Flags","Korea","1F1F0-1F1F7"), s("Flags","United States","1F1FA-1F1F8")
+      ];
+      while(A.length<60){ A.push({...A[A.length%32]}); }
+      return A;
+    }
+
+    /* ===== 2) 정규화(name_*만 검색) ===== */
     function normalizeItems(root){
       const out=[]; const seen=new Set();
       function walk(node, inheritedCat=''){
@@ -220,34 +217,50 @@
       return m;
     }
 
-    /* ===== 3) 카테고리 표 ===== */
+    /* ===== 3) 스프라이트만 있을 때도 ‘전체’ 채워주기 ===== */
+    function itemsFromSpriteMap(mapObj){
+      const dict = (mapObj && mapObj.sprites) ? mapObj.sprites : mapObj || {};
+      const items=[];
+      for(const [k,v] of Object.entries(dict)){
+        if(k==='sprites' || typeof v!=='object') continue;
+        const code = String(k).toUpperCase();
+        items.push({
+          group: '전체',
+          name: code,                    // 이름 정보가 없으므로 코드 표시
+          nameText: code.toLowerCase(),  // 검색(코드 기준)
+          code,
+          emoji: codeToEmoji(code)
+        });
+      }
+      return items;
+    }
+
+    /* ===== 4) 카테고리 표 ===== */
     function buildCategoryTable(catMap){
       const tbody = UI.catTbody; tbody.innerHTML="";
       const ordered=["Smileys & Emotion","People & Body","Animals & Nature","Food & Drink","Travel & Places","Activities","Objects","Symbols","Flags"];
-      const cats=[...catMap.keys()].sort((a,b)=>(ordered.indexOf(a)===-1?999:ordered.indexOf(a))-(ordered.indexOf(b)===-1?999:ordered.indexOf(b)));
-      const final=[ALL_LABEL,...cats];
+      const cats=[...catMap.keys()].filter(k=>k!=='전체').sort((a,b)=>(ordered.indexOf(a)===-1?999:ordered.indexOf(a))-(ordered.indexOf(b)===-1?999:ordered.indexOf(b)));
+      const final=[ALL_LABEL, ...cats];
       const columns=(window.innerWidth<=720)?3:5;
 
       for(let i=0;i<final.length;i+=columns){
         const tr=document.createElement("tr");
-        for(const cat of final.slice(i,i+columns)){
+        const slice=final.slice(i,i+columns);
+        for(const cat of slice){
           const td=document.createElement("td");
           const btn=document.createElement("button");
-          btn.className="cat-btn";
-          btn.setAttribute("data-cat", cat===ALL_LABEL?ALL_KEY:cat);
+          btn.className="cat-btn"; btn.setAttribute("data-cat", cat===ALL_LABEL?ALL_KEY:cat);
 
           const em=document.createElement("span");
           em.className="cat-emoji";
           if(cat===ALL_LABEL) em.textContent=ALL_ICON;
-          else { const sample=(catMap.get(cat)||[])[0]; em.textContent = sample?.emoji || "😀"; }
+          else { const sample=(CAT_MAP.get(cat)||[])[0]; em.textContent = sample?.emoji || "😀"; }
 
           const label=document.createElement("span");
           label.className="cat-label"; label.textContent = (cat===ALL_LABEL?ALL_LABEL:pickLabel(cat));
 
-          btn.appendChild(em); btn.appendChild(label);
-          td.appendChild(btn); tr.appendChild(td);
+          btn.appendChild(em); btn.appendChild(label); td.appendChild(btn); tr.appendChild(td);
         }
-        // 마지막 행 칸 맞추기
         while(tr.children.length<columns) tr.appendChild(document.createElement("td"));
         tbody.appendChild(tr);
       }
@@ -258,7 +271,7 @@
       });
     }
 
-    /* ===== 4) 렌더러 ===== */
+    /* ===== 5) 렌더러 ===== */
     function hasSprite(it){ return SPRITE_MAP && (SPRITE_MAP[it.code] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[it.code])); }
     function spriteRec(it){ return (SPRITE_MAP && (SPRITE_MAP[it.code] || (SPRITE_MAP.sprites && SPRITE_MAP.sprites[it.code]))) || null; }
 
@@ -291,63 +304,52 @@
         return tile;
       }
 
-      // 3) Twemoji PNG(최후, 타일 단위로만)
+      // 3) Twemoji PNG(최후)
       const span=document.createElement("span");
       span.textContent=it.emoji || "❓";
       span.style.fontSize="40px";
       tile.appendChild(span);
-      // 개별 타일만 파싱 → 과한 전역 파싱 방지
-      ensureTwemoji(tile);
+      ensureTwemoji(tile);             // 타일 단위 파싱 → 과도한 전역 파싱 방지
       tile.dataset.emoji=it.emoji || "";
       return tile;
     }
 
-    // 전체 렌더(기본): 한 번에 전부 그린다
     function renderListAll(list){
-      console.time('render_all');
-      totalRendered = list.length;
       UI.grid.innerHTML="";
       const frag=document.createDocumentFragment();
       for(const it of list) frag.appendChild(makeTile(it));
       UI.grid.appendChild(frag);
-      console.timeEnd('render_all');
-      showStatus(`모드: <b>전체 렌더</b> · 카테고리: <b>${ACTIVE_CAT===ALL_KEY?'전체':ACTIVE_CAT}</b> · 항목: <b>${list.length.toLocaleString()}</b>`);
+      showStatus(`소스: <b>${window.__DATA_SOURCE__}</b> · 모드: <b>전체 렌더</b> · 항목: <b>${list.length.toLocaleString()}</b>`);
     }
 
-    // 청크 렌더(옵션): 스크롤에 따라 추가
     function renderListChunked(list){
-      console.time('render_chunk');
-      totalRendered = 0;
       UI.grid.innerHTML="";
-      let idx = 0;
+      let idx=0;
+      const sentinel=document.createElement("div");
 
-      const sentinel = document.createElement("div");
-      const renderChunk = ()=>{
+      const renderChunk=()=>{
         const part=list.slice(idx, idx + (idx===0?FIRST_CHUNK:NEXT_CHUNK));
         if(part.length===0) return;
         const frag=document.createDocumentFragment();
-        for(const it of part){ frag.appendChild(makeTile(it)); }
+        for(const it of part) frag.appendChild(makeTile(it));
         UI.grid.appendChild(frag);
         idx += (idx===0?FIRST_CHUNK:NEXT_CHUNK);
-        totalRendered = idx;
       };
       renderChunk();
       UI.grid.appendChild(sentinel);
 
       const io=new IntersectionObserver((entries)=>{
         if(!entries.some(e=>e.isIntersecting)) return;
-        if(idx < list.length) renderChunk(); else { io.disconnect(); console.timeEnd('render_chunk'); }
-      }, {rootMargin:"900px"});
+        if(idx < list.length) renderChunk(); else io.disconnect();
+      },{rootMargin:"900px"});
       io.observe(sentinel);
-      showStatus(`모드: <b>청크 렌더</b> · 첫 청크 ${FIRST_CHUNK}개 · 전체: <b>${list.length.toLocaleString()}</b>`);
+
+      showStatus(`소스: <b>${window.__DATA_SOURCE__}</b> · 모드: <b>청크 렌더</b> · 총: <b>${list.length.toLocaleString()}</b> · 청크: ${FIRST_CHUNK}/${NEXT_CHUNK}`);
     }
 
-    function rerender(list){
-      if(RENDER_ALL) renderListAll(list);
-      else renderListChunked(list);
-    }
+    function rerender(list){ (RENDER_ALL?renderListAll:renderListChunked)(list); }
 
-    /* ===== 5) 카테고리/검색 ===== */
+    /* ===== 6) 카테고리/검색 ===== */
     function setActiveCategory(key){
       ACTIVE_CAT=key;
       document.querySelectorAll(".cat-btn").forEach(b=>b.classList.toggle("active", b.getAttribute("data-cat")===key));
@@ -360,30 +362,46 @@
       rerender(VIEW_LIST);
     }
 
-    /* ===== 6) 복사 ===== */
+    /* ===== 7) 복사 ===== */
     async function copyToClipboard(text){
       try{ await navigator.clipboard.writeText(text); showToast(); }
       catch(_){ UI.copyOut.value=text; UI.copyOut.select(); document.execCommand('copy'); showToast(); }
     }
 
-    /* ===== 7) 부트스트랩 ===== */
-    (async function boot(){
+    /* ===== 8) 데이터 로드(3단계 우선순위) ===== */
+    async function boot(){
       showStatus("데이터 로드 중…");
-      const ok = await loadData();
-      if(!ok) return;
-
-      const root = BUILD.items || BUILD.emojis || BUILD.data || BUILD.rows || BUILD;
-      ALL_ITEMS = normalizeItems(root);
-      if(ALL_ITEMS.length===0){ showStatus("데이터가 비어 있습니다."); return; }
-
+      // 1) build.json 우선
+      const build = await fetchJSON(DATA_BASE + 'build.json');
+      if(build){
+        window.__DATA_SOURCE__ = 'build.json';
+        const root = build.items || build.emojis || build.data || build.rows || build;
+        ALL_ITEMS = normalizeItems(root);
+        CAT_MAP = buildCatMap(ALL_ITEMS);
+        buildCategoryTable(CAT_MAP);
+        setActiveCategory(ALL_KEY);
+        return;
+      }
+      // 2) SPRITE_MAP만 있을 때: 코드 전체로 채움(이름=코드)
+      const map = await fetchJSON(SPRITES_BASE + 'SPRITE_MAP.json');
+      if(map){
+        window.__DATA_SOURCE__ = 'SPRITE_MAP.json(코드 기반)';
+        ALL_ITEMS = itemsFromSpriteMap(map);             // 전체 카테고리 하나
+        CAT_MAP = buildCatMap(ALL_ITEMS);                // '전체'만
+        buildCategoryTable(CAT_MAP);
+        setActiveCategory(ALL_KEY);
+        return;
+      }
+      // 3) 둘 다 없으면 내장 샘플
+      window.__DATA_SOURCE__ = '내장 샘플';
+      ALL_ITEMS = emergencySample();
       CAT_MAP = buildCatMap(ALL_ITEMS);
       buildCategoryTable(CAT_MAP);
-
-      // 기본: 전체(All)
       setActiveCategory(ALL_KEY);
-    })();
+    }
+    boot();
 
-    /* ===== 8) 이벤트 ===== */
+    /* ===== 9) 이벤트 ===== */
     UI.search.addEventListener('input', ()=>applySearch());
     UI.grid.addEventListener('click', (e)=>{
       const tile = e.target.closest('.tile'); if(!tile) return;
